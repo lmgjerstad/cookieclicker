@@ -101,6 +101,17 @@ if (typeof CookieAuto === "undefined") {
       }
       return undefined;
     },
+    ttl : function (goal) {
+      var cookiesNeeded;
+      if (typeof(goal) == "object") {
+        cookiesNeeded = this.target(goal);
+      } else {
+        cookiesNeeded = goal;
+      }
+      var cookiesRemaining = cookiesNeeded - Game.cookies;
+      if (cookiesRemaining < 0) return 0;
+      return cookiesRemaining / Game.cookiesPs;
+    },
     shoppingList : [],
     validShoppingListItem : function (o) {
       if (o.constructor == Game.Object) {
@@ -132,6 +143,9 @@ if (typeof CookieAuto === "undefined") {
         for (var key in Game.Objects) {
           me = Game.Objects[key];
           my_roi = this.roi(me);
+          if (this.control.considerTTL) {
+            my_roi += this.ttl(me);
+          }
           if (my_roi !== undefined && (o === undefined || my_roi < min_roi)) {
             o = me;
             min_roi = my_roi;
@@ -142,6 +156,9 @@ if (typeof CookieAuto === "undefined") {
         for (i in Game.UpgradesInStore) {
           me = Game.UpgradesInStore[i];
           my_roi = this.roi(me);
+          if (this.control.considerTTL) {
+            my_roi += this.ttl(me);
+          }
           if (my_roi !== undefined && (o === undefined || my_roi < min_roi)) {
             o = me;
             min_roi = my_roi;
@@ -170,7 +187,7 @@ if (typeof CookieAuto === "undefined") {
           }
         } else {
           if (itemsPurchased) {
-            console.log('next ' + o.name + ' => ' + this.target(o));
+            console.log('next ' + o.name + ' => ' + this.format(this.target(o)));
           }
           done = true;
         }
@@ -248,6 +265,7 @@ if (typeof CookieAuto === "undefined") {
       return mult;
     },
     control : {
+      considerTTL : true,
       pauseBuildings : false,
       pauseUpgrades : false,
       popGoldenCookies : true,
@@ -262,12 +280,16 @@ if (typeof CookieAuto === "undefined") {
     target : function (o) {
       var goal = o;
       if (goal === undefined) goal = this.bestBuy();
-      return numberFormatters[1](Game.cookiesPs * this.getMultiplier() + goal.getPrice());
+      return Game.cookiesPs * this.getMultiplier() + goal.getPrice();
+    },
+    format : function(num) {
+      return numberFormatters[1](num);
     },
     loop : function () {
       CookieAuto.buyBest();
       CookieAuto.popShimmers();
       CookieAuto.pledge();
+      CookieAuto.update();
     },
     init : function () {
       for (var i in Game.UpgradesByPool["tech"]) {
@@ -276,11 +298,15 @@ if (typeof CookieAuto === "undefined") {
       this.shoppingList.push(Game.Upgrades["Sacrificial rolling pins"]);
       this.buyBest();
       this.interval = setInterval(this.loop, 500);
-      if (this.control.autoclick) {
+      this.update();
+    },
+    update : function () {
+      if (this.control.autoclick && !this.autoclicker) {
         this.autoclicker = setInterval(Game.ClickCookie, 20);
-      } else if (this.autoclicker) {
+      }
+      if (!this.control.autoclick && this.autoclicker) {
         clearInterval(this.autoclicker);
-        this.autoclicker = undefined;
+        this.autoclicker = 0;
       }
     }
   }
