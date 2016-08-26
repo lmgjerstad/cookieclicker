@@ -155,6 +155,7 @@ if (typeof CookieAuto === "undefined") {
       if (!this.control.pauseUpgrades) {
         for (i in Game.UpgradesInStore) {
           me = Game.UpgradesInStore[i];
+          if (me.bought) continue;
           my_roi = this.roi(me);
           if (this.control.considerTTL) {
             my_roi += this.ttl(me);
@@ -180,7 +181,11 @@ if (typeof CookieAuto === "undefined") {
         var price = o.getPrice();
         if (((Game.cookies - price) / Game.cookiesPs) > this.getMultiplier()) {
           console.log('buying ' + o.name);
-          o.buy();
+          if (o.constructor == Game.Object) {
+            o.buy(1);
+          } else {
+            o.buy();
+          }
           itemsPurchased = true;
           if (++count > 1000) {
             done = true;
