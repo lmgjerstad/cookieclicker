@@ -273,8 +273,8 @@ if (typeof CookieAuto === "undefined") {
     },
     control : {
       considerTTL : true,
-      buyBuildings : false,
-      buyUpgrades : false,
+      buyBuildings : true,
+      buyUpgrades : true,
       popGoldenCookies : true,
       popWrathCookies : true,
       popReindeer : true,
