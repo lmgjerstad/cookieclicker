@@ -139,28 +139,30 @@ if (typeof CookieAuto === "undefined") {
       }
       o = undefined;
       var min_roi, me, my_roi;
-      if (!this.control.pauseBuildings) {
+      if (this.control.buyBuildings) {
         for (var key in Game.Objects) {
           me = Game.Objects[key];
           my_roi = this.roi(me);
+          if (my_roi == undefined) continue;
           if (this.control.considerTTL) {
             my_roi += this.ttl(me);
           }
-          if (my_roi !== undefined && (o === undefined || my_roi < min_roi)) {
+          if (o === undefined || my_roi < min_roi) {
             o = me;
             min_roi = my_roi;
           }
         }
       }
-      if (!this.control.pauseUpgrades) {
+      if (this.control.buyUpgrades) {
         for (i in Game.UpgradesInStore) {
           me = Game.UpgradesInStore[i];
           if (me.bought) continue;
           my_roi = this.roi(me);
+          if (my_roi == undefined) continue;
           if (this.control.considerTTL) {
             my_roi += this.ttl(me);
           }
-          if (my_roi !== undefined && (o === undefined || my_roi < min_roi)) {
+          if (o === undefined || my_roi < min_roi) {
             o = me;
             min_roi = my_roi;
           }
@@ -271,8 +273,8 @@ if (typeof CookieAuto === "undefined") {
     },
     control : {
       considerTTL : true,
-      pauseBuildings : false,
-      pauseUpgrades : false,
+      buyBuildings : false,
+      buyUpgrades : false,
       popGoldenCookies : true,
       popWrathCookies : true,
       popReindeer : true,
