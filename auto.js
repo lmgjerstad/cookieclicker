@@ -299,13 +299,22 @@ if (typeof CookieAuto === "undefined") {
       CookieAuto.update();
     },
     init : function () {
-      for (var i in Game.UpgradesByPool["tech"]) {
-        this.shoppingList.push(Game.UpgradesByPool["tech"][i]);
-      }
-      this.shoppingList.push(Game.Upgrades["Sacrificial rolling pins"]);
+      this.initShoppingList();
       this.buyBest();
       this.interval = setInterval(this.loop, 500);
       this.update();
+    },
+    addToShoppingList : function (obj) {
+      CookieAuto.shoppingList.push(obj);
+    },
+    addToShoppingListByName : function (name) {
+      CookieAuto.shoppingList.push(Game.Upgrades[name]);
+    },
+    initShoppingList : function () {
+      Game.UpgradesByPool["tech"].forEach(addToShoppingList);
+      Game.santaDrops.forEach(addToShoppingListByName);
+      Game.easterEggs.forEach(addToShoppingListByName);
+      ["Lucky day", "Serendipity", "Get lucky", "Sacrificial rolling pins", "Santa's dominion"].forEach(addToShoppingListByName);
     },
     update : function () {
       if (this.control.autoclick && !this.autoclicker) {
