@@ -328,10 +328,13 @@ if (typeof CookieAuto === "undefined") {
     addToShoppingListByName : function (name) {
       CookieAuto.shoppingList.push(Game.Upgrades[name]);
     },
+    noChocolateEgg (name) {
+      return name != "Chocolate egg";
+    },
     initShoppingList : function () {
       Game.UpgradesByPool["tech"].forEach(this.addToShoppingList);
       Game.santaDrops.forEach(this.addToShoppingListByName);
-      Game.easterEggs.forEach(this.addToShoppingListByName);
+      Game.easterEggs.filter(this.noChocolateEgg).forEach(this.addToShoppingListByName);
       [
         "A festive hat",
         "Lucky day",
