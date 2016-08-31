@@ -124,7 +124,7 @@ if (typeof CookieAuto === "undefined") {
     pruneShoppingList : function () {
       this.shoppingList = this.shoppingList.filter(this.validShoppingListItem);
     },
-    bestBuy : function () {
+    nextOnShoppingList : function () {
       this.pruneShoppingList();
       var o;
       for (var i in this.shoppingList) {
@@ -137,8 +137,10 @@ if (typeof CookieAuto === "undefined") {
           return o;
         }
       }
-      o = undefined;
-      var min_roi, me, my_roi;
+      return undefined;
+    },
+    bestBuy : function () {
+      var o, min_roi, me, my_roi;
       if (this.control.buyBuildings) {
         for (var key in Game.Objects) {
           me = Game.Objects[key];
@@ -175,8 +177,16 @@ if (typeof CookieAuto === "undefined") {
       var done = false;
       var itemsPurchased = false;
       var count = 0;
+      var o;
+      var onShoppingList = false;
       while (!done) {
-        var o = this.bestBuy();
+        o = this.nextOnShoppingList();
+        if (o) {
+          onShoppingList = true;
+        } else {
+          o = this.bestBuy();
+          onShoppingList = false;
+        }
         if (o === undefined) {
           return;
         }
@@ -189,6 +199,14 @@ if (typeof CookieAuto === "undefined") {
             o.buy();
           }
           itemsPurchased = true;
+          if (onShoppingList) {
+            for (var i = 0; i < onShoppingList.length; ++i) {
+              if (o === this.shoppingList[i]) {
+                this.shoppingList.splice(i, 1);
+                break;
+              }
+            }
+          }
           if (++count > 1000) {
             done = true;
           }
@@ -311,10 +329,17 @@ if (typeof CookieAuto === "undefined") {
       CookieAuto.shoppingList.push(Game.Upgrades[name]);
     },
     initShoppingList : function () {
-      Game.UpgradesByPool["tech"].forEach(addToShoppingList);
-      Game.santaDrops.forEach(addToShoppingListByName);
-      Game.easterEggs.forEach(addToShoppingListByName);
-      ["Lucky day", "Serendipity", "Get lucky", "Sacrificial rolling pins", "Santa's dominion"].forEach(addToShoppingListByName);
+      Game.UpgradesByPool["tech"].forEach(this.addToShoppingList);
+      Game.santaDrops.forEach(this.addToShoppingListByName);
+      Game.easterEggs.forEach(this.addToShoppingListByName);
+      [
+        "A festive hat",
+        "Lucky day",
+        "Serendipity",
+        "Get lucky",
+        "Sacrificial rolling pins",
+        "Santa's dominion"
+      ].forEach(this.addToShoppingListByName);
     },
     update : function () {
       if (this.control.autoclick && !this.autoclicker) {
