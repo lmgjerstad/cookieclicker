@@ -57,6 +57,9 @@ if (typeof CookieAuto === "undefined") {
       other : {
         "Bingo center/Research facility" : function () {
           return Game.Objects.Grandma.storedTotalCps * Game.globalCpsMult * 3
+        },
+        "A crumbly egg" : function () {
+          return Infinity;
         }
       }
     },
@@ -176,10 +179,11 @@ if (typeof CookieAuto === "undefined") {
     buyBest : function () {
       var done = false;
       var itemsPurchased = false;
-      var count = 0;
       var o;
       var onShoppingList = false;
       while (!done) {
+        this.maybeUpgradeDragon();
+        this.maybeUpgradeSanta();
         o = this.nextOnShoppingList();
         if (o) {
           onShoppingList = true;
@@ -200,15 +204,12 @@ if (typeof CookieAuto === "undefined") {
           }
           itemsPurchased = true;
           if (onShoppingList) {
-            for (var i = 0; i < onShoppingList.length; ++i) {
+            for (var i = 0; i < this.shoppingList.length; ++i) {
               if (o === this.shoppingList[i]) {
                 this.shoppingList.splice(i, 1);
                 break;
               }
             }
-          }
-          if (++count > 1000) {
-            done = true;
           }
         } else {
           if (itemsPurchased) {
@@ -238,6 +239,16 @@ if (typeof CookieAuto === "undefined") {
             }
           }
         }
+      }
+    },
+    maybeUpgradeDragon : function () {
+      if (this.control.upgradeDragon && Game.Has("A crumbly egg")) {
+        Game.UpgradeDragon();
+      }
+    },
+    maybeUpgradeSanta : function () {
+      if (this.control.upgradeSanta && Game.Has("A festive hat")) {
+        Game.UpgradeSanta();
       }
     },
     pledge : function () {
@@ -298,9 +309,12 @@ if (typeof CookieAuto === "undefined") {
       popReindeer : true,
       popWrinklers : true,
       wrinklerThreshold : 0,
-      maintainPledge : false,
+      maintainPledge : true,
       reserve : true,
       autoclick : false,
+      upgradeDragon : false,
+      upgradeSanta : false,
+      autoReset : false,
     },
     target : function (o) {
       var goal = o;
@@ -311,6 +325,18 @@ if (typeof CookieAuto === "undefined") {
       return numberFormatters[1](num);
     },
     loop : function () {
+      if (CookieAuto.control.autoReset && CookieAuto.control.autoReset > Game.resets) {
+        if (Game.OnAscend) {
+          Game.Reincarnate(true);
+          CookieAuto.initShoppingList();
+        } else if (Game.AscendTimer > 0) {
+        } else {
+          var prestige=Math.floor(Game.HowMuchPrestige(Game.cookiesReset+Game.cookiesEarned));
+          if (prestige > Game.prestige) {
+            Game.Ascend(true);
+          }
+        }
+      }
       CookieAuto.buyBest();
       CookieAuto.popShimmers();
       CookieAuto.pledge();
@@ -332,6 +358,7 @@ if (typeof CookieAuto === "undefined") {
       return name != "Chocolate egg";
     },
     initShoppingList : function () {
+      this.shoppingList = [];
       Game.UpgradesByPool["tech"].forEach(this.addToShoppingList);
       Game.santaDrops.forEach(this.addToShoppingListByName);
       Game.easterEggs.filter(this.noChocolateEgg).forEach(this.addToShoppingListByName);
@@ -341,7 +368,8 @@ if (typeof CookieAuto === "undefined") {
         "Serendipity",
         "Get lucky",
         "Sacrificial rolling pins",
-        "Santa's dominion"
+        "Santa's dominion",
+        "A crumbly egg"
       ].forEach(this.addToShoppingListByName);
     },
     update : function () {
