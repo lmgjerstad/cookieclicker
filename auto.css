@@ -1,0 +1,208 @@
+#tabs {
+  width: 100%;
+}
+
+#hitLabel {
+  font-size:2em;
+  border-color:#f00; 
+  font-weight:bold; 
+  opacity:1; 
+} 
+
+#shouldLabel { 
+  font-size:2em; 
+  font-weight:bold; 
+  opacity:1; 
+} 
+
+#shouldLabel:hover { 
+  cursor:pointer; 
+} 
+
+#hitLabel:hover { 
+  color:#FF5555; 
+  cursor:pointer; 
+} 
+
+.superTabBtn.selectedTab { 
+  background-color:#C9C9C9 !important; 
+  box-shadow:2px 2px 5px rgba(0, 0, 0, 0.6) inset, -1px -1px 3px rgba(0, 0, 0, 0.8) inset !important 
+} 
+
+.superTabBtn { 
+  width: 33.333333333333333333333333333333333333333333333333333%; 
+  font-size: 30px; 
+} 
+
+.superRadioBtn { 
+  color: #444 !important; 
+  background-color: white !important; 
+} 
+
+.superRadioBtn:hover { 
+  color: white !important; 
+  background-color: #444 !important; 
+} 
+
+.tabElem { 
+  border:solid 2px; 
+  background-color:#333; 
+  padding:10px 10px; 
+  font-family:"Kavoon"; 
+  margin-top:5px; 
+  margin-bottom:5px; 
+} 
+
+input[type=text]:focus { 
+  outline:0; 
+} 
+
+.tabElem:hover { 
+  background-color:#555; 
+} 
+
+.tabElemDone { 
+  border:solid 2px; 
+  background: #4DBD33; 
+  background: -webkit-linear-gradient(left, #4DBD33, #395D33); 
+  background: -moz-linear-gradient(left, #4DBD33, #395D33); 
+  background: -ms-linear-gradient(left, #4DBD33, #395D33); 
+  background: -o-linear-gradient(left, #4DBD33, #395D33); 
+  background: linear-gradient(left, #4DBD33, #395D33); 
+  padding:10px 10px; 
+  font-family:"Kavoon"; 
+  margin-top:5px; 
+  margin-bottom:5px; 
+} 
+
+.tabElemDone:hover { 
+  background: #6FDF55; 
+  background: -webkit-linear-gradient(left, #6FDF55, #5B7F55); 
+  background: -moz-linear-gradient(left, #6FDF55, #5B7F55); 
+  background: -ms-linear-gradient(left, #6FDF55, #5B7F55); 
+  background: -o-linear-gradient(left, #6FDF55, #5B7F55); 
+  background: linear-gradient(left, #6FDF55, #5B7F55); 
+} 
+
+.superBtn { 
+  border:0; 
+  font-family:"Kavoon"; 
+  box-shadow:2px 2px 5px; 
+  padding:2px; 
+  background-color:#fff; 
+} 
+
+.btns { 
+  float:right; 
+} 
+
+.superFont { 
+  font-family:"Kavoon" 
+} 
+
+.currentState { 
+  border:1px solid; 
+  border-radius:100px; 
+  padding:2px; 
+  box-shadow:1px 1px 5px; 
+} 
+
+.currentState.superBad { 
+  background-color:#EEB4B4; 
+} 
+
+.currentState.superGood { 
+  background-color:#BCED91; 
+} 
+
+.superBtn:active { 
+  box-shadow:1px 1px 2px #000 inset; 
+} 
+
+.superBtn:hover { 
+  cursor:pointer; 
+  background-color:#eee; 
+  text-decoration:underline; 
+  border:0; 
+} 
+
+.superGood, .superGood:hover { 
+  font-family:"Kavoon"; 
+  color:#4CBB17 !important; 
+  border-color:#4CBB17; 
+} 
+
+.superBad, .superBad:hover { 
+  font-family:"Kavoon"; 
+  color:#CD0000; 
+  border-color:#CD0000; 
+} 
+
+.superWarning, .superWarning:hover { 
+  font-family:"Kavoon"; 
+  color:#EE7621; 
+  border-color:#EE7621; 
+} 
+
+#cheatButton { 
+  top:0px; 
+  right:60px; 
+  padding-left:2px; 
+  color:#d00; 
+  background-position:-100px 0px; 
+  z-index:95 
+} 
+
+#cheatButton:hover,#cheatButton.selected { 
+  color:#e00; 
+  right:90px; 
+  background-position:-100px -96px; 
+} 
+
+.simpleInfo { 
+  border:solid 2px; 
+  background-color:#333; 
+  padding:5px 10px; 
+  display:inline-block; 
+} 
+
+
+.superRight { 
+  float:right 
+} 
+
+.imAState { 
+  margin-left:10px; 
+} 
+
+#newForm, #newUpgradeForm, #newSaveForm { 
+  border:2px solid; 
+  padding:10px; 
+  width:50%; 
+  margin:0 auto; 
+  box-shadow:5px 5px 10px; 
+  background-color:#222; 
+} 
+
+#newAutoBuyBuildingsButton { 
+  width:75%; 
+  margin:0 auto; 
+} 
+
+.signatureNinetainedo { 
+  font-size:120%; 
+} 
+
+#upgradesListContainer, #buildingsListContainer, #savesListContainer, #choicesListContainer { 
+  border:2px white solid; 
+  box-shadow:5px 5px 10px; 
+  padding:5px; 
+  overflow:auto; 
+  max-height:500px 
+} 
+
+.superHidden { 
+  display:none; 
+} 
+    </style>;
+
