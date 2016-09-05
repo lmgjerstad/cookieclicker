@@ -1,11 +1,18 @@
 (function () {
-  var underscore_script = document.createElement('script');
-  underscore_script.src = 'http://underscorejs.org/underscore-min.js';
-  document.body.appendChild(underscore_script);
-  var backbone_script = document.createElement('script');
-  backbone_script.src = ('http://backbonejs.org/backbone-min.js');
-  document.body.appendChild(backbone_script);
-  var auto_script = document.createElement('script');
-  auto_script.src = 'https://raw.githubusercontent.com/lmgjerstad/cookieclicker/gh-pages/auto.js';
-  document.body.appendChild(auto_script);
+  var srcs = [
+    'https://code.jquery.com/jquery-3.1.0.min.js',
+    'http://underscorejs.org/underscore-min.js',
+    'http://backbonejs.org/backbone-min.js',
+    'https://raw.githubusercontent.com/lmgjerstad/cookieclicker/ui/auto.js',
+  ];
+  var loadJS = function () {
+    var src = srcs.shift();
+    if (src) {
+      var script = document.createElement('script');
+      script.src = src;
+      script.onload = loadJS;
+      document.body.appendChild(script);
+    }
+  }
+  loadJS();
 }());
