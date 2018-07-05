@@ -64,39 +64,52 @@ if (typeof CookieAuto === "undefined") {
       }
     },
     roi : function(o) {
-      var cps;
+      let cps;
       if (o.constructor === Game.Upgrade) {
         if (o.tier && o.buildingTie) {
+          // Upgrade is tied to a building type and will double output of that building.
           cps = o.buildingTie.storedTotalCps * Game.globalCpsMult;
         } else if (o.pool == "cookie") {
+          // Cookies increase 1% per power.
           if (typeof(o.power) == "function") {
             cps = Game.cookiesPs * o.power() / 100;
           } else {
             cps = Game.cookiesPs * o.power / 100;
           }
         } else if (o.hasOwnProperty("buildingTie1")) {
+          // Upgrades affecting multiple buildings.  5% for first building, 0.1% for second.
           cps = o.buildingTie1.storedTotalCps * Game.globalCpsMult * 0.05 + o.buildingTie2.storedTotalCps * Game.globalCpsMult * 0.001;
         } else if (o.name == "Reinforced index finger" || o.name == "Carpal tunnel prevention cream" || o.name == "Ambidextrous" ) {
+          // Cursor upgrades that are otherwise indeterminate
           cps = Game.Objects.Cursor.storedTotalCps * Game.globalCpsMult;
         } else if (this.UpgradeVars.adds.hasOwnProperty(o.name)) {
-          var cursors = Game.Objects.Cursor.amount;
-          var otherBuildings = Game.BuildingsOwned - cursors;
+          // cursors gain x for each non-cursor building owned
+          let cursors = Game.Objects.Cursor.amount;
+          let otherBuildings = Game.BuildingsOwned - cursors;
           cps = cursors * otherBuildings * this.UpgradeVars.adds[o.name] * Game.globalCpsMult;
         } else if (this.UpgradeVars.kittens.hasOwnProperty(o.name)) {
-          mult = 1;
+          // Kittens cps is based on how much milk there is.
+          let mult = 1;
           if (Game.Has("Santa's milk and cookies")) mult *= 1.05;
           if (Game.hasAura("Breath of milk")) mult *= 1.05;
           cps = Game.milkProgress * this.UpgradeVars.kittens[o.name] * mult * Game.cookiesPs;
         } else if (this.UpgradeVars.grandmas.hasOwnProperty(o.name)) {
+          // Grandmas twice as efficient, building gains 1% per grandma
+          // TODO: Account for 1% per grandma
           cps = Game.Objects.Grandma.storedTotalCps * Game.globalCpsMult;
         } else if (this.UpgradeVars.mouse.hasOwnProperty(o.name)) {
+          // clicking gains 1% of cps
+          // TODO: Account for whether autoclicking is on or not
           cps = Game.cookiesPs * 0.2;
         } else if (this.UpgradeVars.prestige.hasOwnProperty(o.name)) {
+          // Unlock prestige potential
           cps = Game.prestige * 0.01 * Game.heavenlyPower * this.UpgradeVars.prestige[o.name] * Game.cookiesPs;
         } else if (this.UpgradeVars.other.hasOwnProperty(o.name)) {
+          // Other stuff, determine by function
           cps = this.UpgradeVars.other[o.name]();
         }
       } else if (o.constructor === Game.Object) {
+        // It's a building
         cps = o.storedCps * Game.globalCpsMult;
       }
       if (cps !== undefined) {
@@ -105,13 +118,13 @@ if (typeof CookieAuto === "undefined") {
       return undefined;
     },
     ttl : function (goal) {
-      var cookiesNeeded;
+      let cookiesNeeded;
       if (typeof(goal) == "object") {
         cookiesNeeded = this.target(goal);
       } else {
         cookiesNeeded = goal;
       }
-      var cookiesRemaining = cookiesNeeded - Game.cookies;
+      let cookiesRemaining = cookiesNeeded - Game.cookies;
       if (cookiesRemaining < 0) return 0;
       return cookiesRemaining / Game.cookiesPs;
     },
@@ -129,9 +142,7 @@ if (typeof CookieAuto === "undefined") {
     },
     nextOnShoppingList : function () {
       this.pruneShoppingList();
-      var o;
-      for (var i in this.shoppingList) {
-        o = this.shoppingList[i];
+      for (let o of this.shoppingList) {
         if (o.constructor == Game.Upgrade) {
           if (o.unlocked) {
             return o;
@@ -143,10 +154,9 @@ if (typeof CookieAuto === "undefined") {
       return undefined;
     },
     bestBuy : function () {
-      var o, min_roi, me, my_roi;
+      let o, min_roi, me, my_roi;
       if (this.control.buyBuildings) {
-        for (var key in Game.Objects) {
-          me = Game.Objects[key];
+        for (let me of Object.values(Game.Objects)) {
           my_roi = this.roi(me);
           if (my_roi == undefined) continue;
           if (this.control.considerTTL) {
@@ -159,8 +169,7 @@ if (typeof CookieAuto === "undefined") {
         }
       }
       if (this.control.buyUpgrades) {
-        for (i in Game.UpgradesInStore) {
-          me = Game.UpgradesInStore[i];
+        for (let me of Game.UpgradesInStore) {
           if (me.bought) continue;
           my_roi = this.roi(me);
           if (my_roi == undefined) continue;
@@ -177,24 +186,20 @@ if (typeof CookieAuto === "undefined") {
       return o;
     },
     buyBest : function () {
-      var done = false;
-      var itemsPurchased = false;
-      var o;
-      var onShoppingList = false;
+      let done = false;
+      let itemsPurchased = false;
       while (!done) {
         this.maybeUpgradeDragon();
         this.maybeUpgradeSanta();
-        o = this.nextOnShoppingList();
-        if (o) {
-          onShoppingList = true;
-        } else {
+        let o = this.nextOnShoppingList();
+        let onShoppingList = o !== undefined;
+        if (o === undefined) {
           o = this.bestBuy();
-          onShoppingList = false;
         }
         if (o === undefined) {
           return;
         }
-        var price = o.getPrice();
+        let price = o.getPrice();
         if (((Game.cookies - price) / Game.cookiesPs) > this.getMultiplier()) {
           console.log('buying ' + o.name);
           if (o.constructor == Game.Object) {
@@ -204,7 +209,7 @@ if (typeof CookieAuto === "undefined") {
           }
           itemsPurchased = true;
           if (onShoppingList) {
-            for (var i = 0; i < this.shoppingList.length; ++i) {
+            for (let i = 0; i < this.shoppingList.length; ++i) {
               if (o === this.shoppingList[i]) {
                 this.shoppingList.splice(i, 1);
                 break;
@@ -220,8 +225,7 @@ if (typeof CookieAuto === "undefined") {
       }
     },
     popShimmers : function () {
-      for (var i = Game.shimmers.length - 1; i >= 0; --i) {
-        var shimmer = Game.shimmers[i];
+      for (let shimmer of Game.shimmers.reverse()) {
         if (shimmer.wrath) {
           if (this.control.popWrathCookies) shimmer.pop();
         } else if (shimmer.type == "golden") {
@@ -231,8 +235,7 @@ if (typeof CookieAuto === "undefined") {
         }
       }
       if (this.control.popWrinklers) {
-        for (var i in Game.wrinklers) {
-          var wrinkler = Game.wrinklers[i];
+        for (let wrinkler of Game.wrinklers) {
           if (wrinkler.close == 1) {
             if (this.control.wrinklerThreshold <= wrinkler.sucked) {
               wrinkler.hp = 0;
@@ -253,15 +256,15 @@ if (typeof CookieAuto === "undefined") {
     },
     pledge : function () {
       if (!this.control.maintainPledge) return;
-      var p = Game.Upgrades["Elder Pledge"];
+      let p = Game.Upgrades["Elder Pledge"];
       if (p.unlocked && !p.bought) {
         p.buy();
       }
     },
     getMultiplier : function () {
       if (!this.control.reserve) return 0;
-      var mult = 6000;
-      var date = new Date();
+      let mult = 6000;
+      let date = new Date();
       date.setTime(Date.now() - Game.startDate);
       if (date.getTime() < 2 * 60 * 60 * 1000) {
         mult = 0;
@@ -272,27 +275,23 @@ if (typeof CookieAuto === "undefined") {
 
       var i, name;
   
-      for (i = 0; i < Game.goldenCookieChoices.length; ++i) {
-        name = Game.goldenCookieChoices[i];
+      for (let name of Game.goldenCookieChoices) {
         if (Game.hasBuff(name)) {
           mult /= Game.buffs[name].multCpS;
         }
       }
   
-      for (var key in Game.goldenCookieBuildingBuffs) {
-        if (Game.goldenCookieBuildingBuffs.hasOwnProperty(key)) {
-          for (i = 0; i < Game.goldenCookieBuildingBuffs[key].length; ++i) {
-            name = Game.goldenCookieBuildingBuffs[key][i];
-            if (Game.hasBuff(name)) {
-              mult /= Game.buffs[name].multCpS;
-            }
+      for (let buffs of Object.values(Game.goldenCookieBuildingBuffs)) {
+        for (let name of buffs) {
+          if (Game.hasBuff(name)) {
+            mult /= Game.buffs[name].multCpS;
           }
         }
       }
 
-      var wrinklerCount = 0;
-      for (i = 0; i < Game.wrinklers.length; ++i) {
-        if (Game.wrinklers[i].close) {
+      let wrinklerCount = 0;
+      for (let wrinkler of Game.wrinklers) {
+        if (wrinkler.close) {
           ++wrinklerCount;
         }
       }
@@ -317,7 +316,7 @@ if (typeof CookieAuto === "undefined") {
       autoReset : false,
     },
     target : function (o) {
-      var goal = o;
+      let goal = o;
       if (goal === undefined) goal = this.bestBuy();
       return Game.cookiesPs * this.getMultiplier() + goal.getPrice();
     },
@@ -331,7 +330,7 @@ if (typeof CookieAuto === "undefined") {
           CookieAuto.initShoppingList();
         } else if (Game.AscendTimer > 0) {
         } else {
-          var prestige=Math.floor(Game.HowMuchPrestige(Game.cookiesReset+Game.cookiesEarned));
+          let prestige = Math.floor(Game.HowMuchPrestige(Game.cookiesReset+Game.cookiesEarned));
           if (prestige > Game.prestige) {
             Game.Ascend(true);
           }
