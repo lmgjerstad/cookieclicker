@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Auto Buyer
+// @name         CookieAuto
 // @namespace    http://orteil.dashnet.org/cookieclicker/
 // @version      0.1
-// @description  A simple to use yet advanced Cookie Clicker auto-buyer
+// @description  A simple to use yet advanced Cookie Clicker automation addon
 // @author       Lance Gjerstad, Adrian Gjerstad
 // @match        http://orteil.dashnet.org/cookieclicker/
 // @grant        none
@@ -227,6 +227,7 @@ var CookieAuto = {};
                         return;
                     }
                     let price = o.getPrice();
+                    // Re-written as Game.cookies > this.getMultiplier()*Game.cookiesPs + price
                     if (((Game.cookies - price) / Game.cookiesPs) > this.getMultiplier()) {
                         console.log('buying ' + o.name);
                         if (o.constructor == Game.Object) {
@@ -250,6 +251,8 @@ var CookieAuto = {};
                         done = true;
                     }
                 }
+
+                Game.UpdateMenu();
             },
             popShimmers : function () {
                 for (let shimmer of Game.shimmers.reverse()) {
@@ -383,6 +386,7 @@ var CookieAuto = {};
                         }
                     }
                 }
+
                 CookieAuto.buyBest();
                 CookieAuto.popShimmers();
                 CookieAuto.pledge();
@@ -395,6 +399,8 @@ var CookieAuto = {};
                     this.initShoppingList();
                 } else this.loadShoppingList();
 
+                this.shoppingListSortMode = this.sorting.price;
+
                 this.buyBest();
                 this.interval = setInterval(this.loop, 500);
                 this.update();
@@ -405,7 +411,6 @@ var CookieAuto = {};
                     CookieAuto.u.push(v);
                 }
                 Game.UpgradesByPool["tech"].forEach(addToU);
-                Game.UpgradesByPool["cookie"].forEach(addToU);
                 this.u.sort(function(a,b){return a.id-b.id});
             },
             addToShoppingList : function (obj) {
@@ -488,15 +493,70 @@ var CookieAuto = {};
                 }
             },
             u : null,
+            sorting : {
+                a2z : [function (a,b) {
+                    let a_=String(a.name),b_=String(b.name);
+                    while (a_[0] == b_[0] && a_ !== undefined && b_ !== undefined) {
+                        a_ = a_.substr(1);
+                        b_ = b_.substr(1);
+                    }
+
+                    if (a_ === "" || a_ === undefined) {
+                        if (b_ === "" || b_ === undefined) {
+                            // The strings are the same
+                            return 0;
+                        }
+                        // a is shorter than b
+                        return -1;
+                    }
+                    if (b_ === "" || b_ === undefined) {
+                        // b is shorter than a
+                        return 1
+                    }
+
+                    return a_.charCodeAt(0)-b_.charCodeAt(0);
+                }, "A to Z"],
+                z2a : [function (a,b) {
+                    let a_=String(a.name),b_=String(b.name);
+                    while (a_[0] == b_[0] && a_ !== undefined && b_ !== undefined) {
+                        a_ = a_.substr(1);
+                        b_ = b_.substr(1);
+                    }
+
+                    if (a_ === "" || a_ === undefined) {
+                        if (b_ === "" || b_ === undefined) {
+                            // The strings are the same
+                            return 0;
+                        }
+                        // a is shorter than b
+                        return 1;
+                    }
+                    if (b_ === "" || b_ === undefined) {
+                        // b is shorter than a
+                        return -1
+                    }
+
+                    return b_.charCodeAt(0)-a_.charCodeAt(0);
+                }, "Z to A"],
+                price : [function (a,b) {
+                    return a.getPrice()-b.getPrice();
+                }, "Price"],
+                revPrice : [function (a,b) {
+                    return b.getPrice()-a.getPrice();
+                }, "Reverse Price"],
+                __algos__ : ["a2z", "z2a", "price", "revPrice"]
+            },
+            shoppingListSortMode : null,
             generateIconTableData : function() {
-                let u = this.u;
-                let res = '';
                 this.refreshU();
+                let u = this.u.copyWithin();
+                u.sort(this.shoppingListSortMode[0]);
+                let res = '';
                 for (let o of u) {
                     if (o.bought) continue;
                     let x = o.icon[0]*-48;
                     let y = o.icon[1]*-48;
-                    res += '<div class="icon" onclick="CookieAuto.toggleInShoppingList(Game.UpgradesById['+o.id+']);CookieAuto.saveShoppingList();" onmouseout="Game.setOnCrate(0);Game.tooltip.shouldHide=1;" onmouseover="if (!Game.mouseDown) {Game.setOnCrate(this);Game.tooltip.dynamic=1;Game.tooltip.draw(this,function(){return function(){return Game.crateTooltip(Game.UpgradesById['+o.id+'],\'shoppingListSelector\');}();},\'\');Game.tooltip.wobble();}" style="padding:0; cursor:pointer; background-position:'+x+'px '+y+'px; float:left; opacity:'+(this.inShoppingList(o)?'1':'0.2')+';'+(this.nextOnShoppingList()===o?' filter: drop-shadow(0 0 4px rgba(255, 168, 0, 0.2));':'')+'"></div>';
+                    res += '<div class="icon" onclick="CookieAuto.toggleInShoppingList(Game.UpgradesById['+o.id+']);CookieAuto.saveShoppingList();" onmouseout="Game.setOnCrate(0);Game.tooltip.shouldHide=1;" onmouseover="if (!Game.mouseDown) {Game.setOnCrate(this);Game.tooltip.dynamic=1;Game.tooltip.draw(this,function(){return function(){return Game.crateTooltip(Game.UpgradesById['+o.id+'],\'shoppingListSelector\');}();},\'\');Game.tooltip.wobble();}" style="padding:0; cursor:pointer; background-position:'+x+'px '+y+'px; float:left; opacity:'+(this.inShoppingList(o)?'1':'0.2')+';"></div>';
                 }
                 return res;
             }
@@ -558,7 +618,7 @@ var CookieAuto = {};
                             Game.WriteButton('customGrandmas','customGrandmasButton','Custom grandmas ON','Custom grandmas OFF')+'<label>(some grandmas will be named after Patreon supporters)</label><br>'+
                             Game.WriteButton('timeout','timeoutButton','Sleep mode timeout ON','Sleep mode timeout OFF')+'<label>(on slower computers, the game will put itself in sleep mode when it\'s inactive and starts to lag out; offline CpS production kicks in during sleep mode)</label><br>'+
                             '</div>'+
-                            '<div class="title">CookieAuto <sub>v0.1.0</sub></div>'+
+                            '<div class="title">CookieAuto</div>'+
                             '<div class="listing">'+
                             Game.WriteButton('buyscript_abbuild','buyscript_abbuild','Building autobuyers ON','Building autobuyers OFF','CookieAuto.toggleBuilding();')+'<label>(Enable/disable the building autobuyers)</label><br>'+
                             Game.WriteButton('buyscript_abup','buyscript_abup','Upgrade autobuyers ON','Upgrade autobuyers OFF','CookieAuto.toggleUpgrade();')+'<label>(Enable/disable the upgrade autobuyers)</label><br>'+
@@ -752,6 +812,11 @@ var CookieAuto = {};
 
                         var seasonStr=Game.sayTime(Game.seasonT,-1);
 
+                        let nextBuy=(CookieAuto.nextOnShoppingList()!==undefined?CookieAuto.nextOnShoppingList():CookieAuto.bestBuy());
+                        let nextBuyIcon = (nextBuy instanceof Game.Upgrade?[nextBuy.icon[0]*-48, nextBuy.icon[1]*-48]:[(nextBuy.iconColumn)*-48, 0]);
+                        let nextBuyType = (nextBuy instanceof Game.Object?'[owned : '+nextBuy.amount+']':(nextBuy instanceof Game.Upgrade?(nextBuy.pool!==''?'<span style="color:blue;">['+nextBuy.pool.substr(0,1).toUpperCase() + nextBuy.pool.substr(1)+']</span>':'[Upgrade]'):'<ERR>'))+'';
+                        let price = nextBuy.getPrice();
+
                         str+='<div class="section">Statistics</div>'+
                             '<div class="subsection">'+
                             '<div class="title">General</div>'+
@@ -813,6 +878,12 @@ var CookieAuto = {};
                             '<div class="listing crateBox">'+upgrades+'</div>'+
                             (cookieUpgrades!=''?('<div class="listing"><b>Cookies</b></div>'+
                                                  '<div class="listing crateBox">'+cookieUpgrades+'</div>'):'')+
+                            '</div><div class="subsection">'+
+                            '<div class="title">CookieAuto</div>'+
+                            '<div class="listing">'+
+                            '<b>Buying Next :</b>'+
+                            '<div class="framed" style="width: 50%; margin: 0 auto; padding-bottom: 8px;"><div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;">'+Beautify(CookieAuto.getMultiplier()*Game.cookiesPs + price)+'</div></div>'+
+                            '</div>'+
                             '</div><div class="subsection">'+
                             '<div class="title">Achievements</div>'+
                             '<div class="listing"><b>Achievements unlocked :</b> '+achievementsOwned+'/'+achievementsTotal+' ('+Math.floor((achievementsOwned/achievementsTotal)*100)+'%)'+(achievementsOwnedOther>0?('<span style="font-weight:bold;font-size:10px;color:#70a;"> (+'+achievementsOwnedOther+')</span>'):'')+'</div>'+
@@ -958,6 +1029,75 @@ var CookieAuto = {};
                         '<div class="line"></div><div class="description">'+(mysterious?'???':desc)+'</div></div>'+
                         (tip!=''?('<div class="line"></div><div style="font-size:10px;font-weight:bold;color:#999;text-align:center;padding-bottom:4px;line-height:100%;">'+tip+'</div>'):'')+
                         (Game.sesame?('<div style="font-size:9px;">Id : '+me.id+' | Order : '+Math.floor(me.order)+(me.tier?' | Tier : '+me.tier:'')+'</div>'):'');
+                }
+
+                Game.HardReset=function(bypass) {
+                    if (!bypass)
+                    {
+                        Game.Prompt('<h3>Wipe save</h3><div class="block">Do you REALLY want to wipe your save?<br><small>You will lose your progress, your achievements, and your heavenly chips!</small></div>',[['Yes!','Game.ClosePrompt();Game.HardReset(1);'],'No']);
+                    }
+                    else if (bypass==1)
+                    {
+                        Game.Prompt('<h3>Wipe save</h3><div class="block">Whoah now, are you really, <b><i>REALLY</i></b> sure you want to go through with this?<br><small>Don\'t say we didn\'t warn you!</small></div>',[['Do it!','Game.ClosePrompt();Game.HardReset(2);'],'No']);
+                    }
+                    else
+                    {
+                        for (var i in Game.AchievementsById)
+                        {
+                            var me=Game.AchievementsById[i];
+                            me.won=0;
+                        }
+                        for (var i in Game.ObjectsById)
+                        {
+                            var me=Game.ObjectsById[i];
+                            me.level=0;
+                        }
+
+                        Game.AchievementsOwned=0;
+                        Game.goldenClicks=0;
+                        Game.missedGoldenClicks=0;
+                        Game.Reset(1);
+                        Game.resets=0;
+                        Game.fullDate=parseInt(Date.now());
+                        Game.bakeryName=Game.GetBakeryName();
+                        Game.bakeryNameRefresh();
+                        Game.cookiesReset=0;
+                        Game.prestige=0;
+                        Game.heavenlyChips=0;
+                        Game.heavenlyChipsSpent=0;
+                        Game.heavenlyCookies=0;
+                        Game.permanentUpgrades=[-1,-1,-1,-1,-1];
+                        Game.ascensionMode=0;
+                        Game.lumps=-1;
+                        Game.lumpsTotal=-1;
+                        Game.lumpT=Date.now();
+                        Game.lumpRefill=0;
+                        Game.removeClass('lumpsOn');
+
+                        localStorage.removeItem('buyscript_considerTTL');
+                        localStorage.removeItem('buyscript_buyBuildings');
+                        localStorage.removeItem('buyscript_buyUpgrades');
+                        localStorage.removeItem('buyscript_popGoldenCookies');
+                        localStorage.removeItem('buyscript_popWrathCookies');
+                        localStorage.removeItem('buyscript_popReindeer');
+                        localStorage.removeItem('buyscript_popWrinklers');
+                        localStorage.removeItem('buyscript_wrinkerThreshold');
+                        localStorage.removeItem('buyscript_maintainPledge');
+                        localStorage.removeItem('buyscript_reserve');
+                        localStorage.removeItem('buyscript_autoclick');
+                        localStorage.removeItem('buyscript_upgradeDragon');
+                        localStorage.removeItem('buyscript_upgradeSanta');
+                        localStorage.removeItem('buyscript_autoReset');
+                        localStorage.removeItem('buyscript_shoppingList');
+
+                        CookieAuto.loadShoppingList();
+                        Game.prefs.buyscript_abbuild = 1;
+                        Game.prefs.buyscript_abup = 1;
+                        Game.prefs.buyscript_abac = 0;
+
+                        Game.prefs.buyscript_santaup = 0;
+                        Game.prefs.buyscript_dragonup = 0;
+                    }
                 }
 
                 window.CookieAuto = CookieAuto;
