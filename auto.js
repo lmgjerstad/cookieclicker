@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         CookieAuto
-// @namespace    http://orteil.dashnet.org/cookieclicker/
+// @namespace    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/
+// @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @version      0.1
 // @description  A simple to use yet advanced Cookie Clicker automation addon
 // @author       Lance Gjerstad, Adrian Gjerstad
-// @match        http://orteil.dashnet.org/cookieclicker/
+// @match        http*://orteil.dashnet.org/cookieclicker/
 // @grant        none
 // ==/UserScript==
 
