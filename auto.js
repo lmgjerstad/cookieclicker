@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name         CookieAuto
-// @namespace    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/
+// @version      0.1.0-a
+// @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
-// @version      0.1
-// @description  A simple to use yet advanced Cookie Clicker automation addon
+// @description  Automate your cookies!
+// @homepage     https://lmgjerstad.github.io/cookieclicker/
+// @supportURL   https://github.com/lmgjerstad/cookieclicker/issues
 // @author       Lance Gjerstad, Adrian Gjerstad
 // @match        http*://orteil.dashnet.org/cookieclicker/
 // @grant        none
@@ -364,6 +366,15 @@ var CookieAuto = {};
             format : function(num) {
                 return numberFormatters[1](num);
             },
+            updateGoalValue : function () {
+                if (Game.onMenu == 'stats') {
+                    let nextBuy=(CookieAuto.nextOnShoppingList()!==undefined?CookieAuto.nextOnShoppingList():CookieAuto.bestBuy());
+                    let nextBuyIcon = (nextBuy instanceof Game.Upgrade?[nextBuy.icon[0]*-48, nextBuy.icon[1]*-48]:[(nextBuy.iconColumn)*-48, 0]);
+                    let nextBuyType = (nextBuy instanceof Game.Object?'[owned : '+nextBuy.amount+']':(nextBuy instanceof Game.Upgrade?(nextBuy.pool!==''?'<span style="color:blue;">['+nextBuy.pool.substr(0,1).toUpperCase() + nextBuy.pool.substr(1)+']</span>':'[Upgrade]'):'<ERR>'))+'';
+                    let price = nextBuy.getPrice();
+                    q('#buyingNext')[0].innerHTML = '<div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">'+Beautify(CookieAuto.getMultiplier()*Game.cookiesPs + price+1)+'</div><div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:'+(100-((Game.cookies/(CookieAuto.getMultiplier()*Game.cookiesPs + price+1))*100))+'%;transition:right 0.5s;"></div></div>'
+                }
+            },
             loop : function () {
                 if (CookieAuto.control.autoReset && CookieAuto.control.autoReset > Game.resets) {
                     if (Game.OnAscend) {
@@ -377,6 +388,8 @@ var CookieAuto = {};
                         }
                     }
                 }
+
+                CookieAuto.updateGoalValue();
 
                 CookieAuto.buyBest();
                 CookieAuto.popShimmers();
@@ -873,7 +886,7 @@ var CookieAuto = {};
                             '<div class="title">CookieAuto</div>'+
                             '<div class="listing">'+
                             '<b>Buying Next :</b>'+
-                            '<div class="framed" style="width: 50%; margin: 0 auto; padding-bottom: 8px;"><div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;">'+Beautify(CookieAuto.getMultiplier()*Game.cookiesPs + price)+'</div></div>'+
+                            '<div id="buyingNext" class="framed" style="width: 50%; margin: 0 auto; padding-bottom: 8px;"><div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">'+Beautify(CookieAuto.getMultiplier()*Game.cookiesPs + price+1)+'</div><div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:'+(100-((Game.cookies/(CookieAuto.getMultiplier()*Game.cookiesPs + price+1))*100))+'%;transition:right 0.5s;"></div></div></div>'+
                             '</div>'+
                             '</div><div class="subsection">'+
                             '<div class="title">Achievements</div>'+
