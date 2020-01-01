@@ -286,7 +286,7 @@ var CookieAuto = {};
             },
             getMultiplier : function () {
                 if (!this.control.reserve) return 0;
-                let mult = 1;
+                let mult = 6000;
                 let date = new Date();
                 date.setTime(Date.now() - Game.startDate);
                 if (date.getTime() < 2 * 60 * 60 * 1000) {
@@ -334,6 +334,10 @@ var CookieAuto = {};
                 this.control.autoclick = !this.control.autoclick;
                 localStorage.setItem("buyscript_autoclick", this.control.autoclick);
             },
+            toggleReserve : function() {
+                this.control.reserve = !this.control.reserve;
+                localStorage.setItem("buyscript_reserve", this.control.reserve);
+            },
             toggleDragon : function() {
                 this.control.upgradeDragon = !this.control.upgradeDragon;
                 localStorage.setItem("buyscript_upgradeDragon", this.control.upgradeDragon);
@@ -352,7 +356,7 @@ var CookieAuto = {};
                 popWrinklers : (localStorage.getItem("buyscript_popWrinklers")||"true")=="true",
                 wrinklerThreshold : parseInt(localStorage.getItem("buyscript_wrinklerThreshold")||"0"),
                 maintainPledge : (localStorage.getItem("buyscript_maintainPledge")||"true")=="true",
-                reserve : (localStorage.getItem("buyscript_reserve")||"true")=="true",
+                reserve : (localStorage.getItem("buyscript_reserve")||"false")=="true",
                 autoclick : (localStorage.getItem("buyscript_autoclick")||"false")=="true",
                 upgradeDragon : (localStorage.getItem("buyscript_upgradeDragon")||"false")=="true",
                 upgradeSanta : (localStorage.getItem("buyscript_upgradeSanta")||"false")=="true",
@@ -578,6 +582,7 @@ var CookieAuto = {};
                 Game.prefs.buyscript_abbuild = CookieAuto.control.buyBuildings?1:0;
                 Game.prefs.buyscript_abup = CookieAuto.control.buyUpgrades?1:0;
                 Game.prefs.buyscript_abac = CookieAuto.control.autoclick?1:0;
+                Game.prefs.buyscript_reserve = CookieAuto.control.reserve?1:0;
 
                 Game.prefs.buyscript_santaup = CookieAuto.control.upgradeSanta?1:0;
                 Game.prefs.buyscript_dragonup = CookieAuto.control.upgradeDragon?1:0;
@@ -627,6 +632,7 @@ var CookieAuto = {};
                             Game.WriteButton('buyscript_abbuild','buyscript_abbuild','Building autobuyers ON','Building autobuyers OFF','CookieAuto.toggleBuilding();')+'<label>(Enable/disable the building autobuyers)</label><br>'+
                             Game.WriteButton('buyscript_abup','buyscript_abup','Upgrade autobuyers ON','Upgrade autobuyers OFF','CookieAuto.toggleUpgrade();')+'<label>(Enable/disable the upgrade autobuyers)</label><br>'+
                             Game.WriteButton('buyscript_abac','buyscript_abac','Autoclicker ON','Autoclicker OFF','CookieAuto.toggleAutoclicker();')+'<label>(Enable/disable the autoclicker)</label><br>'+
+                            Game.WriteButton('buyscript_reserve','buyscript_reserve','Reserve ON','Reserve OFF','CookieAuto.toggleReserve();')+'<label>(Reserve cookies for after a purchase)</label><br>'+
                             (Game.Has('A crumbly egg')?Game.WriteButton('buyscript_dragonup','buyscript_dragonup','Dragon upgrades ON','Dragon upgrades OFF','CookieAuto.toggleDragon();')+'<label>(Enable/disable automatic dragon upgrades)</label><br>':'')+
                             (Game.Has('A festive hat')?Game.WriteButton('buyscript_santaup','buyscript_santaup','Santa upgrades ON','Santa upgrades OFF','CookieAuto.toggleSanta();')+'<label>(Enable/disable automatic santa upgrades)</label><br>':'')+
                             CookieAuto.generateIconTableData()+
@@ -1098,6 +1104,7 @@ var CookieAuto = {};
                         Game.prefs.buyscript_abbuild = 1;
                         Game.prefs.buyscript_abup = 1;
                         Game.prefs.buyscript_abac = 0;
+                        Game.prefs.buyscript_reserve = 0;
 
                         Game.prefs.buyscript_santaup = 0;
                         Game.prefs.buyscript_dragonup = 0;
