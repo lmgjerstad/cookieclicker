@@ -1,11 +1,9 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-a
-// @namespace    https://github.com/lmgjerstad/cookieclicker
+// @namespace    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
-// @description  Automate your cookies!
-// @homepage     https://lmgjerstad.github.io/cookieclicker/
-// @supportURL   https://github.com/lmgjerstad/cookieclicker/issues
+// @version      0.1
+// @description  A simple to use yet advanced Cookie Clicker automation addon
 // @author       Lance Gjerstad, Adrian Gjerstad
 // @match        http*://orteil.dashnet.org/cookieclicker/
 // @grant        none
@@ -13,132 +11,122 @@
 
 var CookieAuto = {};
 
-(function() {
+(() => {
     'use strict';
 
-    function q(cssSelector) {
-        return document.querySelectorAll(cssSelector);
-    }
+    let Game = window.Game;
+    let q = css_selector => document.querySelectorAll(css_selector);
 
+    let roi = () => (() => {
+        // cursor upgrades
+        let cursor_cps = () => Game.Objects.Cursor.storedTotalCps * Game.globalCpsMult;
+
+        // cursors gain mult for each non-cursor building owned
+        let finger_cps = multiplier => () => {
+            let cursors = Game.Objects.Cursor.amount;
+            let otherBuildings = Game.BuildingsOwned - cursors;
+            return cursors * otherBuildings * multiplier * Game.globalCpsMult;
+        }
+        // Kittens cps is based on how much milk there is.
+        let kitten_cps = multiplier => () => {
+            let mult = 1;
+            if (Game.Has("Santa's milk and cookies")) mult *= 1.05;
+            if (Game.hasAura("Breath of milk")) mult *= 1.05;
+            return Game.milkProgress * multiplier * mult * Game.cookiesPs;
+        }
+        // Grandmas twice as efficient, building gains 1% per grandma
+        // TODO: Account for 1% per grandma
+        let grandma_cps = () => Game.Objects.Grandma.storedTotalCps * Game.globalCpsMult;
+
+        // clicking gains 1% of cps
+        // TODO: Account for whether autoclicking is on or not
+        let mouse_cps = () => Game.cookiesPs * 0.2;
+
+        // Unlock prestige potential
+        let prestige_cps = multiplier => () => Game.prestige * 0.01 * Game.heavenlyPower * multiplier * Game.cookiesPs;
+
+        let custom_cps = {
+            "Reinforced index finger" : cursor_cps,
+            "Carpal tunnel prevention cream" : cursor_cps,
+            "Ambidextrous" : cursor_cps,
+            "Thousand fingers" : finger_cps(0.1),
+            "Million fingers" : finger_cps(0.5),
+            "Billion fingers" : finger_cps(5),
+            "Trillion fingers" : finger_cps(50),
+            "Quadrillion fingers" : finger_cps(500),
+            "Quintillion fingers" : finger_cps(5000),
+            "Sextillion fingers" : finger_cps(50000),
+            "Septillion fingers" : finger_cps(500000),
+            "Octillion fingers" : finger_cps(5000000),
+            "Kitten helpers" : kitten_cps(0.1),
+            "Kitten workers" : kitten_cps(0.125),
+            "Kitten engineers" : kitten_cps(0.15),
+            "Kitten overseers" : kitten_cps(0.175),
+            "Kitten managers" : kitten_cps(0.2),
+            "Kitten accountants" : kitten_cps(0.2),
+            "Kitten specialists" : kitten_cps(0.2),
+            "Kitten experts" : kitten_cps(0.2),
+            'Farmer grandmas' : grandma_cps,
+            'Worker grandmas' : grandma_cps,
+            'Miner grandmas' : grandma_cps,
+            'Cosmic grandmas' : grandma_cps,
+            'Transmuted grandmas' : grandma_cps,
+            'Altered grandmas' : grandma_cps,
+            'Grandmas\' grandmas' : grandma_cps,
+            'Antigrandmas' : grandma_cps,
+            'Rainbow grandmas' : grandma_cps,
+            'Banker grandmas' : grandma_cps,
+            'Priestess grandmas' : grandma_cps,
+            'Witch grandmas' : grandma_cps,
+            'Plastic mouse' : mouse_cps,
+            'Iron mouse' : mouse_cps,
+            'Titanium mouse' : mouse_cps,
+            'Adamantium mouse' : mouse_cps,
+            'Unobtainium mouse' : mouse_cps,
+            'Eludium mouse' : mouse_cps,
+            'Wishalloy mouse' : mouse_cps,
+            'Fantasteel mouse' : mouse_cps,
+            'Nevercrack mouse' : mouse_cps,
+            'Heavenly chip secret' : prestige_cps(0.05),
+            'Heavenly cookie stand' : prestige_cps(0.20),
+            'Heavenly bakery' : prestige_cps(0.25),
+            'Heavenly confectionery' : prestige_cps(0.25),
+            'Heavenly key' : prestige_cps(0.25),
+            "Bingo center/Research facility" : () => Game.Objects.Grandma.storedTotalCps * Game.globalCpsMult * 3,
+            "A crumbly egg" : () => Infinity,
+        }
+        return o => {
+            let cps;
+            if (o.constructor === Game.Upgrade) {
+                if (o.tier && o.buildingTie) {
+                    // Upgrade is tied to a building type and will double output of that building.
+                    cps = o.buildingTie.storedTotalCps * Game.globalCpsMult;
+                } else if (o.pool == "cookie") {
+                    // Cookies increase 1% per power.
+                    if (typeof(o.power) == "function") {
+                        cps = Game.cookiesPs * o.power() / 100;
+                    } else {
+                        cps = Game.cookiesPs * o.power / 100;
+                    }
+                } else if (o.hasOwnProperty("buildingTie1")) {
+                    // Upgrades affecting multiple buildings.  5% for first building, 0.1% for second.
+                    cps = o.buildingTie1.storedTotalCps * Game.globalCpsMult * 0.05 + o.buildingTie2.storedTotalCps * Game.globalCpsMult * 0.001;
+                } else if (custom_cps.hasOwnProperty(o.name)) {
+                    cps = custom_cps[o.name]();
+                }
+            } else if (o.constructor === Game.Object) {
+                // It's a building
+                cps = o.storedCps * Game.globalCpsMult;
+            }
+            if (cps !== undefined) {
+                return o.getPrice() / cps;
+            }
+            return undefined;
+        };
+    })();
     if (typeof window.CookieAuto === "undefined") {
         var CookieAuto = {
-            UpgradeVars : {
-                adds : {
-                    "Thousand fingers" : 0.1,
-                    "Million fingers" : 0.5,
-                    "Billion fingers" : 5,
-                    "Trillion fingers" : 50,
-                    "Quadrillion fingers" : 500,
-                    "Quintillion fingers" : 5000,
-                    "Sextillion fingers" : 50000,
-                    "Septillion fingers" : 500000,
-                    "Octillion fingers" : 5000000
-                },
-                kittens : {
-                    "Kitten helpers" : 0.1,
-                    "Kitten workers" : 0.125,
-                    "Kitten engineers" : 0.15,
-                    "Kitten overseers" : 0.175,
-                    "Kitten managers" : 0.2,
-                    "Kitten accountants" : 0.2,
-                    "Kitten specialists" : 0.2,
-                    "Kitten experts" : 0.2
-                },
-                grandmas : {
-                    'Farmer grandmas' : 2,
-                    'Worker grandmas' : 2,
-                    'Miner grandmas' : 2,
-                    'Cosmic grandmas' : 2,
-                    'Transmuted grandmas' : 2,
-                    'Altered grandmas' : 2,
-                    'Grandmas\' grandmas' : 2,
-                    'Antigrandmas' : 2,
-                    'Rainbow grandmas' : 2,
-                    'Banker grandmas' : 2,
-                    'Priestess grandmas' : 2,
-                    'Witch grandmas' : 2
-                },
-                mouse : {
-                    'Plastic mouse' : 0.2,
-                    'Iron mouse' : 0.2,
-                    'Titanium mouse' : 0.2,
-                    'Adamantium mouse' : 0.2,
-                    'Unobtainium mouse' : 0.2,
-                    'Eludium mouse' : 0.2,
-                    'Wishalloy mouse' : 0.2,
-                    'Fantasteel mouse' : 0.2,
-                    'Nevercrack mouse' : 0.2
-                },
-                prestige : {
-                    'Heavenly chip secret' : 0.05,
-                    'Heavenly cookie stand' : 0.20,
-                    'Heavenly bakery' : 0.25,
-                    'Heavenly confectionery' : 0.25,
-                    'Heavenly key' : 0.25
-                },
-                other : {
-                    "Bingo center/Research facility" : function () {
-                        return Game.Objects.Grandma.storedTotalCps * Game.globalCpsMult * 3
-                    },
-                    "A crumbly egg" : function () {
-                        return Infinity;
-                    }
-                }
-            },
-            roi : function(o) {
-                let cps;
-                if (o.constructor === Game.Upgrade) {
-                    if (o.tier && o.buildingTie) {
-                        // Upgrade is tied to a building type and will double output of that building.
-                        cps = o.buildingTie.storedTotalCps * Game.globalCpsMult;
-                    } else if (o.pool == "cookie") {
-                        // Cookies increase 1% per power.
-                        if (typeof(o.power) == "function") {
-                            cps = Game.cookiesPs * o.power() / 100;
-                        } else {
-                            cps = Game.cookiesPs * o.power / 100;
-                        }
-                    } else if (o.hasOwnProperty("buildingTie1")) {
-                        // Upgrades affecting multiple buildings.  5% for first building, 0.1% for second.
-                        cps = o.buildingTie1.storedTotalCps * Game.globalCpsMult * 0.05 + o.buildingTie2.storedTotalCps * Game.globalCpsMult * 0.001;
-                    } else if (o.name == "Reinforced index finger" || o.name == "Carpal tunnel prevention cream" || o.name == "Ambidextrous" ) {
-                        // Cursor upgrades that are otherwise indeterminate
-                        cps = Game.Objects.Cursor.storedTotalCps * Game.globalCpsMult;
-                    } else if (this.UpgradeVars.adds.hasOwnProperty(o.name)) {
-                        // cursors gain x for each non-cursor building owned
-                        let cursors = Game.Objects.Cursor.amount;
-                        let otherBuildings = Game.BuildingsOwned - cursors;
-                        cps = cursors * otherBuildings * this.UpgradeVars.adds[o.name] * Game.globalCpsMult;
-                    } else if (this.UpgradeVars.kittens.hasOwnProperty(o.name)) {
-                        // Kittens cps is based on how much milk there is.
-                        let mult = 1;
-                        if (Game.Has("Santa's milk and cookies")) mult *= 1.05;
-                        if (Game.hasAura("Breath of milk")) mult *= 1.05;
-                        cps = Game.milkProgress * this.UpgradeVars.kittens[o.name] * mult * Game.cookiesPs;
-                    } else if (this.UpgradeVars.grandmas.hasOwnProperty(o.name)) {
-                        // Grandmas twice as efficient, building gains 1% per grandma
-                        // TODO: Account for 1% per grandma
-                        cps = Game.Objects.Grandma.storedTotalCps * Game.globalCpsMult;
-                    } else if (this.UpgradeVars.mouse.hasOwnProperty(o.name)) {
-                        // clicking gains 1% of cps
-                        // TODO: Account for whether autoclicking is on or not
-                        cps = Game.cookiesPs * 0.2;
-                    } else if (this.UpgradeVars.prestige.hasOwnProperty(o.name)) {
-                        // Unlock prestige potential
-                        cps = Game.prestige * 0.01 * Game.heavenlyPower * this.UpgradeVars.prestige[o.name] * Game.cookiesPs;
-                    } else if (this.UpgradeVars.other.hasOwnProperty(o.name)) {
-                        // Other stuff, determine by function
-                        cps = this.UpgradeVars.other[o.name]();
-                    }
-                } else if (o.constructor === Game.Object) {
-                    // It's a building
-                    cps = o.storedCps * Game.globalCpsMult;
-                }
-                if (cps !== undefined) {
-                    return o.getPrice() / cps;
-                }
-                return undefined;
-            },
+            roi : roi,
             ttl : function (goal) {
                 let cookiesNeeded;
                 if (typeof(goal) == "object") {
@@ -238,7 +226,6 @@ var CookieAuto = {};
                         } else {
                             o.buy();
                         }
-                        Game.UpdateMenu();
                         itemsPurchased = true;
                         if (onShoppingList) {
                             for (let i = 0; i < this.shoppingList.length; ++i) {
@@ -255,6 +242,8 @@ var CookieAuto = {};
                         done = true;
                     }
                 }
+
+                Game.UpdateMenu();
             },
             popShimmers : function () {
                 for (let shimmer of Game.shimmers.reverse()) {
@@ -375,15 +364,6 @@ var CookieAuto = {};
             format : function(num) {
                 return numberFormatters[1](num);
             },
-            updateGoalValue : function () {
-                if (Game.onMenu == 'stats') {
-                    let nextBuy=(CookieAuto.nextOnShoppingList()!==undefined?CookieAuto.nextOnShoppingList():CookieAuto.bestBuy());
-                    let nextBuyIcon = (nextBuy instanceof Game.Upgrade?[nextBuy.icon[0]*-48, nextBuy.icon[1]*-48]:[(nextBuy.iconColumn)*-48, 0]);
-                    let nextBuyType = (nextBuy instanceof Game.Object?'[owned : '+nextBuy.amount+']':(nextBuy instanceof Game.Upgrade?(nextBuy.pool!==''?'<span style="color:blue;">['+nextBuy.pool.substr(0,1).toUpperCase() + nextBuy.pool.substr(1)+']</span>':'[Upgrade]'):'<ERR>'))+'';
-                    let price = nextBuy.getPrice();
-                    q('#buyingNext')[0].innerHTML = '<div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">'+Beautify(CookieAuto.getMultiplier()*Game.cookiesPs + price+1)+'</div><div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:'+(100-((Game.cookies/(CookieAuto.getMultiplier()*Game.cookiesPs + price+1))*100))+'%;transition:right 0.5s;"></div></div>'
-                }
-            },
             loop : function () {
                 if (CookieAuto.control.autoReset && CookieAuto.control.autoReset > Game.resets) {
                     if (Game.OnAscend) {
@@ -397,8 +377,6 @@ var CookieAuto = {};
                         }
                     }
                 }
-
-                CookieAuto.updateGoalValue();
 
                 CookieAuto.buyBest();
                 CookieAuto.popShimmers();
@@ -895,7 +873,7 @@ var CookieAuto = {};
                             '<div class="title">CookieAuto</div>'+
                             '<div class="listing">'+
                             '<b>Buying Next :</b>'+
-                            '<div id="buyingNext" class="framed" style="width: 50%; margin: 0 auto; padding-bottom: 8px;"><div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">'+Beautify(CookieAuto.getMultiplier()*Game.cookiesPs + price+1)+'</div><div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:'+(100-((Game.cookies/(CookieAuto.getMultiplier()*Game.cookiesPs + price+1))*100))+'%;transition:right 0.5s;"></div></div></div>'+
+                            '<div class="framed" style="width: 50%; margin: 0 auto; padding-bottom: 8px;"><div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;">'+Beautify(CookieAuto.getMultiplier()*Game.cookiesPs + price)+'</div></div>'+
                             '</div>'+
                             '</div><div class="subsection">'+
                             '<div class="title">Achievements</div>'+
