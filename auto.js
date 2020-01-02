@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-a
+// @version      0.1.0-b
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -128,7 +128,7 @@ var CookieAuto = {};
     })();
     if (typeof window.CookieAuto === "undefined") {
         var CookieAuto = {
-            roi : roi,
+            roi : roi(),
             ttl : function (goal) {
                 let cookiesNeeded;
                 if (typeof(goal) == "object") {
