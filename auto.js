@@ -17,6 +17,23 @@ var CookieAuto = {};
     'use strict';
 
     let Game = window.Game;
+    let settings = {
+        considerTTL : (localStorage.getItem("buyscript_considerTTL")||"true")=="true",
+        buyBuildings : (localStorage.getItem("buyscript_buyBuildings")||"true")=="true",
+        buyUpgrades : (localStorage.getItem("buyscript_buyUpgrades")||"true")=="true",
+        popGoldenCookies : (localStorage.getItem("buyscript_popGoldenCookies")||"true")=="true",
+        popWrathCookies : (localStorage.getItem("buyscript_popWrathCookies")||"true")=="true",
+        popReindeer : (localStorage.getItem("buyscript_popReindeer")||"true")=="true",
+        popWrinklers : (localStorage.getItem("buyscript_popWrinklers")||"true")=="true",
+        wrinklerThreshold : parseInt(localStorage.getItem("buyscript_wrinklerThreshold")||"0"),
+        maintainPledge : (localStorage.getItem("buyscript_maintainPledge")||"true")=="true",
+        reserve : (localStorage.getItem("buyscript_reserve")||"false")=="true",
+        autoclick : (localStorage.getItem("buyscript_autoclick")||"false")=="true",
+        upgradeDragon : (localStorage.getItem("buyscript_upgradeDragon")||"false")=="true",
+        upgradeSanta : (localStorage.getItem("buyscript_upgradeSanta")||"false")=="true",
+        autoReset : (localStorage.getItem("buyscript_autoReset")||"false")=="true"
+    }
+
     let q = css_selector => document.querySelectorAll(css_selector);
 
     let roi = () => (() => {
@@ -344,22 +361,7 @@ var CookieAuto = {};
                 this.control.upgradeSanta = !this.control.upgradeSanta;
                 localStorage.setItem("buyscript_upgradeSanta", this.control.upgradeSanta);
             },
-            control : {
-                considerTTL : (localStorage.getItem("buyscript_considerTTL")||"true")=="true",
-                buyBuildings : (localStorage.getItem("buyscript_buyBuildings")||"true")=="true",
-                buyUpgrades : (localStorage.getItem("buyscript_buyUpgrades")||"true")=="true",
-                popGoldenCookies : (localStorage.getItem("buyscript_popGoldenCookies")||"true")=="true",
-                popWrathCookies : (localStorage.getItem("buyscript_popWrathCookies")||"true")=="true",
-                popReindeer : (localStorage.getItem("buyscript_popReindeer")||"true")=="true",
-                popWrinklers : (localStorage.getItem("buyscript_popWrinklers")||"true")=="true",
-                wrinklerThreshold : parseInt(localStorage.getItem("buyscript_wrinklerThreshold")||"0"),
-                maintainPledge : (localStorage.getItem("buyscript_maintainPledge")||"true")=="true",
-                reserve : (localStorage.getItem("buyscript_reserve")||"false")=="true",
-                autoclick : (localStorage.getItem("buyscript_autoclick")||"false")=="true",
-                upgradeDragon : (localStorage.getItem("buyscript_upgradeDragon")||"false")=="true",
-                upgradeSanta : (localStorage.getItem("buyscript_upgradeSanta")||"false")=="true",
-                autoReset : (localStorage.getItem("buyscript_autoReset")||"false")=="true"
-            },
+            control : settings,
             target : function (o) {
                 return this.getLuckyReserve() + o.getPrice();
             },
