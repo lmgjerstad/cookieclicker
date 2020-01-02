@@ -220,8 +220,8 @@ var CookieAuto = {};
                         return;
                     }
                     let price = o.getPrice();
-                    // Re-written as Game.cookies > this.getMultiplier()*Game.cookiesPs + price
-                    if (((Game.cookies - price) / Game.cookiesPs) > this.getMultiplier()) {
+                    // Re-written as Game.cookies > this.getLuckyReserve() + price
+                    if ((Game.cookies - price) > this.getLuckyReserve()) {
                         console.log('buying ' + o.name);
                         if (o.constructor == Game.Object) {
                             o.buy(1);
@@ -284,43 +284,41 @@ var CookieAuto = {};
                     p.buy();
                 }
             },
-            getMultiplier : function () {
-                if (!this.control.reserve) return 0;
-                let mult = 6000;
+            /**
+             * Lucky is maximized when 15% of the cookies in the bank are at
+             * least 15 minutes worth of production.  This effect also stacks with
+             * "frenzy"
+             */
+            getLuckyReserve : function () {
+                // Skip if reservation not set.
+                if (!this.control.reserve) {
+                    return 0;
+                }
+
+                // If We're less than 2 hours into a run, don't bother.
                 let date = new Date();
                 date.setTime(Date.now() - Game.startDate);
                 if (date.getTime() < 2 * 60 * 60 * 1000) {
-                    mult = 0;
+                    return 0;
                 }
+
+                // Start with 6000, since 15% of 6000 seconds is 15 minutes
+                let seconds = 6000;
+                let cps = Game.cookiesPs;
+
+                // If get lucky is owned, it then the frenzy stack is possible.
                 if (Game.Upgrades["Get lucky"].bought) {
-                    mult *= 7;
+                    cps *= 7;
                 }
 
-                var i, name;
+                // Ignore any temporary buffs, they don't stack anyway.
+                cps = Game.buffs.map(x => x.multCpS).reduce((a,b) => a / b, cps);
 
-                for (let name of Game.goldenCookieChoices) {
-                    if (Game.hasBuff(name)) {
-                        mult /= Game.buffs[name].multCpS;
-                    }
-                }
+                // The calculation of CpS doesn't account for wrinklers, so we drop
+                // them from the CpS
+                cps /= (1 - (Game.wrinklers.filter(x => x.close).length / 20));
 
-                for (let buffs of Object.values(Game.goldenCookieBuildingBuffs)) {
-                    for (let name of buffs) {
-                        if (Game.hasBuff(name)) {
-                            mult /= Game.buffs[name].multCpS;
-                        }
-                    }
-                }
-
-                let wrinklerCount = 0;
-                for (let wrinkler of Game.wrinklers) {
-                    if (wrinkler.close) {
-                        ++wrinklerCount;
-                    }
-                }
-                mult /= (1 - (wrinklerCount / 20));
-
-                return mult;
+                return seconds * cps;
             },
             toggleBuilding : function() {
                 this.control.buyBuildings = !this.control.buyBuildings;
@@ -363,7 +361,7 @@ var CookieAuto = {};
                 autoReset : (localStorage.getItem("buyscript_autoReset")||"false")=="true"
             },
             target : function (o) {
-                return Game.cookiesPs * this.getMultiplier() + o.getPrice();
+                return this.getLuckyReserve() + o.getPrice();
             },
             format : function(num) {
                 return numberFormatters[1](num);
@@ -374,7 +372,7 @@ var CookieAuto = {};
                     let nextBuyIcon = (nextBuy instanceof Game.Upgrade?[nextBuy.icon[0]*-48, nextBuy.icon[1]*-48]:[(nextBuy.iconColumn)*-48, 0]);
                     let nextBuyType = (nextBuy instanceof Game.Object?'[owned : '+nextBuy.amount+']':(nextBuy instanceof Game.Upgrade?(nextBuy.pool!==''?'<span style="color:blue;">['+nextBuy.pool.substr(0,1).toUpperCase() + nextBuy.pool.substr(1)+']</span>':'[Upgrade]'):'<ERR>'))+'';
                     let price = nextBuy.getPrice();
-                    q('#buyingNext')[0].innerHTML = '<div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">'+Beautify(CookieAuto.getMultiplier()*Game.cookiesPs + price+1)+'</div><div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:'+(100-((Game.cookies/(CookieAuto.getMultiplier()*Game.cookiesPs + price+1))*100))+'%;transition:right 0.5s;"></div></div>'
+                    q('#buyingNext')[0].innerHTML = '<div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">'+Beautify(CookieAuto.getLuckyReserve() + price+1)+'</div><div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:'+(100-((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100))+'%;transition:right 0.5s;"></div></div>'
                 }
             },
             loop : function () {
@@ -890,7 +888,7 @@ var CookieAuto = {};
                             '<div class="title">CookieAuto</div>'+
                             '<div class="listing">'+
                             '<b>Buying Next :</b>'+
-                            '<div id="buyingNext" class="framed" style="width: 50%; margin: 0 auto; padding-bottom: 8px;"><div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">'+Beautify(CookieAuto.getMultiplier()*Game.cookiesPs + price+1)+'</div><div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:'+(100-((Game.cookies/(CookieAuto.getMultiplier()*Game.cookiesPs + price+1))*100))+'%;transition:right 0.5s;"></div></div></div>'+
+                            '<div id="buyingNext" class="framed" style="width: 50%; margin: 0 auto; padding-bottom: 8px;"><div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">'+Beautify(CookieAuto.getLuckyReserve() + price+1)+'</div><div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:'+(100-((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100))+'%;transition:right 0.5s;"></div></div></div>'+
                             '</div>'+
                             '</div><div class="subsection">'+
                             '<div class="title">Achievements</div>'+
