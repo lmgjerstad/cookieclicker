@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-c
+// @version      0.1.0-b
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -363,9 +363,7 @@ var CookieAuto = {};
                 autoReset : (localStorage.getItem("buyscript_autoReset")||"false")=="true"
             },
             target : function (o) {
-                let goal = o;
-                if (goal === undefined) goal = this.bestBuy();
-                return Game.cookiesPs * this.getMultiplier() + goal.getPrice();
+                return Game.cookiesPs * this.getMultiplier() + o.getPrice();
             },
             format : function(num) {
                 return numberFormatters[1](num);
