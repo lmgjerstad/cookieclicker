@@ -17,25 +17,45 @@ var CookieAuto = {};
     'use strict';
 
     let Game = window.Game;
-    let settings = {
-        considerTTL : (localStorage.getItem("buyscript_considerTTL")||"true")=="true",
-        buyBuildings : (localStorage.getItem("buyscript_buyBuildings")||"true")=="true",
-        buyUpgrades : (localStorage.getItem("buyscript_buyUpgrades")||"true")=="true",
-        popGoldenCookies : (localStorage.getItem("buyscript_popGoldenCookies")||"true")=="true",
-        popWrathCookies : (localStorage.getItem("buyscript_popWrathCookies")||"true")=="true",
-        popReindeer : (localStorage.getItem("buyscript_popReindeer")||"true")=="true",
-        popWrinklers : (localStorage.getItem("buyscript_popWrinklers")||"true")=="true",
-        wrinklerThreshold : parseInt(localStorage.getItem("buyscript_wrinklerThreshold")||"0"),
-        maintainPledge : (localStorage.getItem("buyscript_maintainPledge")||"true")=="true",
-        reserve : (localStorage.getItem("buyscript_reserve")||"false")=="true",
-        autoclick : (localStorage.getItem("buyscript_autoclick")||"false")=="true",
-        upgradeDragon : (localStorage.getItem("buyscript_upgradeDragon")||"false")=="true",
-        upgradeSanta : (localStorage.getItem("buyscript_upgradeSanta")||"false")=="true",
-        autoReset : (localStorage.getItem("buyscript_autoReset")||"false")=="true"
-    }
+    let settings = (() => {
+        let serialized = localStorage.getItem('cookie_auto');
+        let settings;
+        if (serialized) {
+            return JSON.parse(serialized);
+        } else {
+            // TODO: Delete this branch once everyone has run this code once
+            let get_def = (name, def) => {
+                let val = localStorage.getItem(name);
+                if (val === null) {
+                    return def;
+                }
+                localStorage.removeItem(name);
+                return JSON.parse(val);
+            };
+            settings = {
+                considerTTL : get_def('buyscript_considerTTL', true),
+                buyBuildings : get_def('buyscript_buyBuildings', true),
+                buyUpgrades : get_def('buyscript_buyUpgrades', true),
+                popGoldenCookies : get_def('buyscript_popGoldenCookies', true),
+                popWrathCookies: get_def('buyscript_popWrathCookies', true),
+                popReindeer : get_def('buyscript_popReindeer', true),
+                popWrinklers : get_def('buyscript_popWrinklers', true),
+                wrinklerThreshold : get_def('buyscript_wrinklerThreshold', 0),
+                maintainPledge : get_def('buyscript_maintainPledge', true),
+                reserve : get_def('buyscript_reserve', false),
+                autoclick : get_def('buyscript_autoclick', false),
+                upgradeDragon : get_def('buyscript_upgradeDragon', false),
+                upgradeSanta : get_def('buyscript_upgradeSanta', false),
+                autoReset : get_def('buyscript_autoReset', false),
+            };
+            localStorage.setItem('cookie_auto', JSON.stringify(settings));
+            return settings;
+        }
+    })();
+
+    let saveSettings = () => localStorage.setItem('cookie_auto', JSON.stringify(settings));
 
     let q = css_selector => document.querySelectorAll(css_selector);
-
 
     let roi = (() => {
         // cursor upgrades
@@ -209,50 +229,76 @@ var CookieAuto = {};
         return cookiesRemaining / Game.cookiesPs;
     };
 
+    let shoppingList = new Map();
+
+    let initShoppingList = () => {
+        (() => {
+            if (settings.hasOwnProperty('shoppingList')) {
+                return;
+            }
+            let bf = b64_to_utf8(localStorage.getItem('buyscript_shoppingList'));
+            if (bf) {
+                localStorage.removeItem('buyscript_shoppingList');
+                let items = [];
+                let u = Game.UpgradesByPool[''].concat(Game.UpgradesByPool.tech)
+                                               .sort((a,b) => a.id - b.id);
+                for (let bit in bf) {
+                    if (bf[bit] == '1') {
+                        items.push(u[bit]);
+                    }
+                }
+                settings.shoppingList = items.map(x => x.name);
+                localStorage.setItem('cookie_auto', JSON.stringify(settings));
+                return;
+            }
+            settings.shoppingList = Game.UpgradesByPool.tech.map(x => x.name)
+                                        .concat(Game.santaDrops)
+                                        .concat(Game.easterEggs.filter(x => x != "Chocolate egg"))
+                                        .concat([
+                                            "A festive hat",
+                                            "Lucky day",
+                                            "Serendipity",
+                                            "Get lucky",
+                                            "Sacrificial rolling pins",
+                                            "Santa's dominion",
+                                            "A crumbly egg",
+                                        ])
+            localStorage.setItem('cookie_auto', JSON.stringify(settings));
+        })();
+        settings.shoppingList.forEach(x => shoppingList.set(x, Game.Upgrades[x]));
+    };
+
+    let nextOnShoppingList = () => {
+        let max_price = Game.cookiesPs*60 + Game.cookies;
+        let order = (a,b) => a.getPrice() - b.getPrice();
+        return Array.from(shoppingList.values)
+                    .filter(x => x.getPrice() < max_price)
+                    .filter(x => x.unlocked && !x.bought)
+                    .sort(order)[0]
+    };
+
+    let toggleInShoppingList = me => {
+        if (!shoppingList.delete(me.name)) {
+            shoppingList.set(me.name, me);
+        }
+        settings.shoppingList = Array.from(shoppingList.keys());
+
+        Game.UpdateMenu();
+    };
+
+    let inShoppingList = me => shoppingList.has(me.name);
+
     if (typeof window.CookieAuto === "undefined") {
         var CookieAuto = {
             roi : roi,
             ttl : ttl,
-            shoppingList : [],
-            validShoppingListItem : function (o) {
-                if (o.constructor == Game.Object) {
-                    return true;
-                }
-                if (o.constructor == Game.Upgrade) {
-                    return !o.bought;
-                }
-            },
-            pruneShoppingList : function () {
-                this.shoppingList = this.shoppingList.filter(this.validShoppingListItem);
-            },
-            nextOnShoppingList : function () {
-                this.pruneShoppingList();
-                let buffer = [];
-                for (let o of this.shoppingList) {
-                    if (o.constructor == Game.Upgrade) {
-                        // Is upgrade 60 seconds or less out
-                        if (o.unlocked && Game.cookies + (Game.cookiesPs*60) >= o.getPrice()) {
-                            buffer.push(o);
-                        }
-                    } else if (!o.locked) {
-                        if (Game.cookies + (Game.cookiesPs*60) >= o.getPrice()) {
-                            buffer.push(o);
-                        }
-                    }
-                }
-
-                if (buffer.length == 0) return;
-
-                buffer.sort(function(a,b){return a.getPrice()-b.getPrice();});
-                return buffer[0];
-            },
             bestBuy : function () {
                 let o, min_roi, me, my_roi;
-                if (this.control.buyBuildings) {
+                if (settings.buyBuildings) {
                     for (let me of Object.values(Game.Objects)) {
                         my_roi = this.roi(me);
                         if (my_roi == undefined) continue;
-                        if (this.control.considerTTL) {
+                        if (settings.considerTTL) {
                             my_roi += this.ttl(me);
                         }
                         if (o === undefined || my_roi < min_roi) {
@@ -261,12 +307,12 @@ var CookieAuto = {};
                         }
                     }
                 }
-                if (this.control.buyUpgrades) {
+                if (settings.buyUpgrades) {
                     for (let me of Game.UpgradesInStore) {
                         if (me.bought) continue;
                         my_roi = this.roi(me);
                         if (my_roi == undefined) continue;
-                        if (this.control.considerTTL) {
+                        if (settings.considerTTL) {
                             my_roi += this.ttl(me);
                         }
                         if (o === undefined || my_roi < min_roi) {
@@ -284,11 +330,7 @@ var CookieAuto = {};
                 while (!done) {
                     this.maybeUpgradeDragon();
                     this.maybeUpgradeSanta();
-                    let o = this.nextOnShoppingList();
-                    let onShoppingList = o !== undefined;
-                    if (o === undefined) {
-                        o = this.bestBuy();
-                    }
+                    let o = nextOnShoppingList() || this.bestBuy();
                     if (o === undefined) {
                         return;
                     }
@@ -302,14 +344,6 @@ var CookieAuto = {};
                             o.buy();
                         }
                         itemsPurchased = true;
-                        if (onShoppingList) {
-                            for (let i = 0; i < this.shoppingList.length; ++i) {
-                                if (o === this.shoppingList[i]) {
-                                    this.shoppingList.splice(i, 1);
-                                    break;
-                                }
-                            }
-                        }
                     } else {
                         if (itemsPurchased) {
                             console.log('next ' + o.name + ' => ' + this.format(this.target(o)));
@@ -323,17 +357,17 @@ var CookieAuto = {};
             popShimmers : function () {
                 for (let shimmer of Game.shimmers.reverse()) {
                     if (shimmer.wrath) {
-                        if (this.control.popWrathCookies) shimmer.pop();
+                        if (settings.popWrathCookies) shimmer.pop();
                     } else if (shimmer.type == "golden") {
-                        if (this.control.popGoldenCookies) shimmer.pop();
+                        if (settings.popGoldenCookies) shimmer.pop();
                     } else {
-                        if (this.control.popReindeer) shimmer.pop();
+                        if (settings.popReindeer) shimmer.pop();
                     }
                 }
-                if (this.control.popWrinklers) {
+                if (settings.popWrinklers) {
                     for (let wrinkler of Game.wrinklers) {
                         if (wrinkler.close == 1) {
-                            if (this.control.wrinklerThreshold <= wrinkler.sucked) {
+                            if (settings.wrinklerThreshold <= wrinkler.sucked) {
                                 wrinkler.hp = 0;
                             }
                         }
@@ -341,17 +375,17 @@ var CookieAuto = {};
                 }
             },
             maybeUpgradeDragon : function () {
-                if (this.control.upgradeDragon && Game.Has("A crumbly egg")) {
+                if (settings.upgradeDragon && Game.Has("A crumbly egg")) {
                     Game.UpgradeDragon();
                 }
             },
             maybeUpgradeSanta : function () {
-                if (this.control.upgradeSanta && Game.Has("A festive hat")) {
+                if (settings.upgradeSanta && Game.Has("A festive hat")) {
                     Game.UpgradeSanta();
                 }
             },
             pledge : function () {
-                if (!this.control.maintainPledge) return;
+                if (!settings.maintainPledge) return;
                 let p = Game.Upgrades["Elder Pledge"];
                 if (p.unlocked && !p.bought) {
                     p.buy();
@@ -359,28 +393,28 @@ var CookieAuto = {};
             },
             getLuckyReserve : getLuckyReserve,
             toggleBuilding : function() {
-                this.control.buyBuildings = !this.control.buyBuildings;
-                localStorage.setItem("buyscript_buyBuildings", this.control.buyBuildings);
+                settings.buyBuildings = !settings.buyBuildings;
+                saveSettings();
             },
             toggleUpgrade : function() {
-                this.control.buyUpgrades = !this.control.buyUpgrades;
-                localStorage.setItem("buyscript_buyUpgrades", this.control.buyUpgrades);
+                settings.buyUpgrades = !settings.buyUpgrades;
+                saveSettings();
             },
             toggleAutoclicker : function() {
-                this.control.autoclick = !this.control.autoclick;
-                localStorage.setItem("buyscript_autoclick", this.control.autoclick);
+                settings.autoclick = !settings.autoclick;
+                saveSettings();
             },
             toggleReserve : function() {
-                this.control.reserve = !this.control.reserve;
-                localStorage.setItem("buyscript_reserve", this.control.reserve);
+                settings.reserve = !settings.reserve;
+                saveSettings();
             },
             toggleDragon : function() {
-                this.control.upgradeDragon = !this.control.upgradeDragon;
-                localStorage.setItem("buyscript_upgradeDragon", this.control.upgradeDragon);
+                settings.upgradeDragon = !settings.upgradeDragon;
+                saveSettings();
             },
             toggleSanta : function() {
-                this.control.upgradeSanta = !this.control.upgradeSanta;
-                localStorage.setItem("buyscript_upgradeSanta", this.control.upgradeSanta);
+                settings.upgradeSanta = !settings.upgradeSanta;
+                saveSettings();
             },
             control : settings,
             target : target,
@@ -389,7 +423,7 @@ var CookieAuto = {};
             },
             updateGoalValue : function () {
                 if (Game.onMenu == 'stats') {
-                    let nextBuy=(CookieAuto.nextOnShoppingList()!==undefined?CookieAuto.nextOnShoppingList():CookieAuto.bestBuy());
+                    let nextBuy=(nextOnShoppingList()!==undefined?nextOnShoppingList():CookieAuto.bestBuy());
                     let nextBuyIcon = (nextBuy instanceof Game.Upgrade?[nextBuy.icon[0]*-48, nextBuy.icon[1]*-48]:[(nextBuy.iconColumn)*-48, 0]);
                     let nextBuyType = (nextBuy instanceof Game.Object?'[owned : '+nextBuy.amount+']':(nextBuy instanceof Game.Upgrade?(nextBuy.pool!==''?'<span style="color:blue;">['+nextBuy.pool.substr(0,1).toUpperCase() + nextBuy.pool.substr(1)+']</span>':'[Upgrade]'):'<ERR>'))+'';
                     let price = nextBuy.getPrice();
@@ -400,7 +434,6 @@ var CookieAuto = {};
                 if (CookieAuto.control.autoReset && CookieAuto.control.autoReset > Game.resets) {
                     if (Game.OnAscend) {
                         Game.Reincarnate(true);
-                        CookieAuto.initShoppingList();
                     } else if (Game.AscendTimer > 0) {
                     } else {
                         let prestige = Math.floor(Game.HowMuchPrestige(Game.cookiesReset+Game.cookiesEarned));
@@ -418,11 +451,7 @@ var CookieAuto = {};
                 CookieAuto.update();
             },
             init : function () {
-                this.refreshU();
-
-                if (localStorage.getItem('buyscript_shoppingList') === null) {
-                    this.initShoppingList();
-                } else this.loadShoppingList();
+                initShoppingList();
 
                 this.shoppingListSortMode = this.sorting.price;
 
@@ -430,94 +459,16 @@ var CookieAuto = {};
                 this.interval = setInterval(this.loop, 500);
                 this.update();
             },
-            refreshU : function () {
-                this.u = [...Game.UpgradesByPool[""]];
-                function addToU(v) {
-                    CookieAuto.u.push(v);
-                }
-                Game.UpgradesByPool["tech"].forEach(addToU);
-                this.u.sort(function(a,b){return a.id-b.id});
-            },
-            addToShoppingList : function (obj) {
-                CookieAuto.shoppingList.push(obj);
-            },
-            addToShoppingListByName : function (name) {
-                CookieAuto.shoppingList.push(Game.Upgrades[name]);
-            },
-            noChocolateEgg (name) {
-                return name != "Chocolate egg";
-            },
-            initShoppingList : function () {
-                this.shoppingList = [];
-                Game.UpgradesByPool["tech"].forEach(this.addToShoppingList);
-                Game.santaDrops.forEach(this.addToShoppingListByName);
-                Game.easterEggs.filter(this.noChocolateEgg).forEach(this.addToShoppingListByName);
-                [
-                    "A festive hat",
-                    "Lucky day",
-                    "Serendipity",
-                    "Get lucky",
-                    "Sacrificial rolling pins",
-                    "Santa's dominion",
-                    "A crumbly egg"
-                ].forEach(this.addToShoppingListByName);
-                this.saveShoppingList();
-            },
             update : function () {
-                if (this.control.autoclick && !this.autoclicker) {
+                if (settings.autoclick && !this.autoclicker) {
                     this.autoclicker = setInterval(Game.ClickCookie, 20);
                 }
-                if (!this.control.autoclick && this.autoclicker) {
+                if (!settings.autoclick && this.autoclicker) {
                     clearInterval(this.autoclicker);
                     this.autoclicker = 0;
                 }
             },
-            toggleInShoppingList : function(me) {
-                let found = false;
-                for (let o in this.shoppingList) {
-                    if (this.shoppingList[o] === me) {
-                        this.shoppingList.splice(o, 1);
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found) {
-                    this.shoppingList.push(me);
-                }
-
-                Game.UpdateMenu();
-            },
-            inShoppingList : function(me) {
-                for (let o in this.shoppingList) {
-                    if (this.shoppingList[o].name == me.name) {
-                        return true;
-                    }
-                }
-                return false;
-            },
-            saveShoppingList : function() {
-                let res = '';
-                this.refreshU();
-                for (let o of this.u) {
-                    if (this.inShoppingList(o)) res += '1'
-                    else res += '0'
-                }
-                res = utf8_to_b64(res);
-                localStorage.setItem('buyscript_shoppingList', res);
-                Game.Notify('CookieAuto shopping list saved', '', [21, 7], 1, 1);
-            },
-            loadShoppingList : function() {
-                let bf = b64_to_utf8(localStorage.getItem('buyscript_shoppingList'));
-                this.shoppingList = [];
-                this.refreshU();
-                for (let bit in bf) {
-                    if (bf[bit] == '1') {
-                        this.shoppingList.push(this.u[bit]);
-                    }
-                }
-            },
-            u : null,
+            toggleInShoppingList: toggleInShoppingList,
             sorting : {
                 a2z : [function (a,b) {
                     let a_=String(a.name),b_=String(b.name);
@@ -573,15 +524,13 @@ var CookieAuto = {};
             },
             shoppingListSortMode : null,
             generateIconTableData : function() {
-                this.refreshU();
-                let u = this.u.copyWithin();
-                u.sort(this.shoppingListSortMode[0]);
+                let u = Game.UpgradesByPool[''].concat(Game.UpgradesByPool.tech)
+                                               .sort(this.shoppingListSortMode[0]);
                 let res = '';
                 for (let o of u) {
-                    if (o.bought) continue;
                     let x = o.icon[0]*-48;
                     let y = o.icon[1]*-48;
-                    res += '<div class="icon" onclick="CookieAuto.toggleInShoppingList(Game.UpgradesById['+o.id+']);CookieAuto.saveShoppingList();" onmouseout="Game.setOnCrate(0);Game.tooltip.shouldHide=1;" onmouseover="if (!Game.mouseDown) {Game.setOnCrate(this);Game.tooltip.dynamic=1;Game.tooltip.draw(this,function(){return function(){return Game.crateTooltip(Game.UpgradesById['+o.id+'],\'shoppingListSelector\');}();},\'\');Game.tooltip.wobble();}" style="padding:0; cursor:pointer; background-position:'+x+'px '+y+'px; float:left; opacity:'+(this.inShoppingList(o)?'1':'0.2')+';"></div>';
+                    res += '<div class="icon" onclick="CookieAuto.toggleInShoppingList(Game.UpgradesById['+o.id+']);" onmouseout="Game.setOnCrate(0);Game.tooltip.shouldHide=1;" onmouseover="if (!Game.mouseDown) {Game.setOnCrate(this);Game.tooltip.dynamic=1;Game.tooltip.draw(this,function(){return function(){return Game.crateTooltip(Game.UpgradesById['+o.id+'],\'shoppingListSelector\');}();},\'\');Game.tooltip.wobble();}" style="padding:0; cursor:pointer; background-position:'+x+'px '+y+'px; float:left; opacity:'+(inShoppingList(o)?'1':'0.2')+';"></div>';
                 }
                 return res;
             }
@@ -594,7 +543,6 @@ var CookieAuto = {};
             if(Game.externalDataLoaded) {
                 console.debug("starting cookieauto");
                 CookieAuto.init.call(CookieAuto);
-                setInterval(function(){CookieAuto.saveShoppingList.call(CookieAuto)}, 60000);
 
                 Game.prefs.buyscript_abbuild = CookieAuto.control.buyBuildings?1:0;
                 Game.prefs.buyscript_abup = CookieAuto.control.buyUpgrades?1:0;
@@ -616,7 +564,7 @@ var CookieAuto = {};
                         str+='<div class="section">Options</div>'+
                             '<div class="subsection">'+
                             '<div class="title">General</div>'+
-                            '<div class="listing"><a class="option" '+Game.clickStr+'="Game.toSave=true;PlaySound(\'snd/tick.mp3\');CookieAuto.saveShoppingList();">Save</a><label>Save manually (the game autosaves every 60 seconds; shortcut : ctrl+S)</label></div>'+
+                            '<div class="listing"><a class="option" '+Game.clickStr+'="Game.toSave=true;PlaySound(\'snd/tick.mp3\');">Save</a><label>Save manually (the game autosaves every 60 seconds; shortcut : ctrl+S)</label></div>'+
                             '<div class="listing"><a class="option" '+Game.clickStr+'="Game.ExportSave();PlaySound(\'snd/tick.mp3\');">Export save</a><a class="option" '+Game.clickStr+'="Game.ImportSave();PlaySound(\'snd/tick.mp3\');">Import save</a><label>You can use this to backup your save or to transfer it to another computer (shortcut for import : ctrl+O)</label></div>'+
                             '<div class="listing"><a class="option" '+Game.clickStr+'="Game.FileSave();PlaySound(\'snd/tick.mp3\');">Save to file</a><a class="option" style="position:relative;"><input id="FileLoadInput" type="file" style="cursor:pointer;opacity:0;position:absolute;left:0px;top:0px;width:100%;height:100%;" onchange="Game.FileLoad(event);" '+Game.clickStr+'="PlaySound(\'snd/tick.mp3\');"/>Load from file</a><label>Use this to keep backups on your computer</label></div>'+
 
@@ -839,7 +787,7 @@ var CookieAuto = {};
 
                         var seasonStr=Game.sayTime(Game.seasonT,-1);
 
-                        let nextBuy=(CookieAuto.nextOnShoppingList()!==undefined?CookieAuto.nextOnShoppingList():CookieAuto.bestBuy());
+                        let nextBuy=(nextOnShoppingList()!==undefined?nextOnShoppingList():CookieAuto.bestBuy());
                         let nextBuyIcon = (nextBuy instanceof Game.Upgrade?[nextBuy.icon[0]*-48, nextBuy.icon[1]*-48]:[(nextBuy.iconColumn)*-48, 0]);
                         let nextBuyType = (nextBuy instanceof Game.Object?'[owned : '+nextBuy.amount+']':(nextBuy instanceof Game.Upgrade?(nextBuy.pool!==''?'<span style="color:blue;">['+nextBuy.pool.substr(0,1).toUpperCase() + nextBuy.pool.substr(1)+']</span>':'[Upgrade]'):'<ERR>'))+'';
                         let price = nextBuy.getPrice();
@@ -1056,76 +1004,6 @@ var CookieAuto = {};
                         '<div class="line"></div><div class="description">'+(mysterious?'???':desc)+'</div></div>'+
                         (tip!=''?('<div class="line"></div><div style="font-size:10px;font-weight:bold;color:#999;text-align:center;padding-bottom:4px;line-height:100%;">'+tip+'</div>'):'')+
                         (Game.sesame?('<div style="font-size:9px;">Id : '+me.id+' | Order : '+Math.floor(me.order)+(me.tier?' | Tier : '+me.tier:'')+'</div>'):'');
-                }
-
-                Game.HardReset=function(bypass) {
-                    if (!bypass)
-                    {
-                        Game.Prompt('<h3>Wipe save</h3><div class="block">Do you REALLY want to wipe your save?<br><small>You will lose your progress, your achievements, and your heavenly chips!</small></div>',[['Yes!','Game.ClosePrompt();Game.HardReset(1);'],'No']);
-                    }
-                    else if (bypass==1)
-                    {
-                        Game.Prompt('<h3>Wipe save</h3><div class="block">Whoah now, are you really, <b><i>REALLY</i></b> sure you want to go through with this?<br><small>Don\'t say we didn\'t warn you!</small></div>',[['Do it!','Game.ClosePrompt();Game.HardReset(2);'],'No']);
-                    }
-                    else
-                    {
-                        for (var i in Game.AchievementsById)
-                        {
-                            var me=Game.AchievementsById[i];
-                            me.won=0;
-                        }
-                        for (var i in Game.ObjectsById)
-                        {
-                            var me=Game.ObjectsById[i];
-                            me.level=0;
-                        }
-
-                        Game.AchievementsOwned=0;
-                        Game.goldenClicks=0;
-                        Game.missedGoldenClicks=0;
-                        Game.Reset(1);
-                        Game.resets=0;
-                        Game.fullDate=parseInt(Date.now());
-                        Game.bakeryName=Game.GetBakeryName();
-                        Game.bakeryNameRefresh();
-                        Game.cookiesReset=0;
-                        Game.prestige=0;
-                        Game.heavenlyChips=0;
-                        Game.heavenlyChipsSpent=0;
-                        Game.heavenlyCookies=0;
-                        Game.permanentUpgrades=[-1,-1,-1,-1,-1];
-                        Game.ascensionMode=0;
-                        Game.lumps=-1;
-                        Game.lumpsTotal=-1;
-                        Game.lumpT=Date.now();
-                        Game.lumpRefill=0;
-                        Game.removeClass('lumpsOn');
-
-                        localStorage.removeItem('buyscript_considerTTL');
-                        localStorage.removeItem('buyscript_buyBuildings');
-                        localStorage.removeItem('buyscript_buyUpgrades');
-                        localStorage.removeItem('buyscript_popGoldenCookies');
-                        localStorage.removeItem('buyscript_popWrathCookies');
-                        localStorage.removeItem('buyscript_popReindeer');
-                        localStorage.removeItem('buyscript_popWrinklers');
-                        localStorage.removeItem('buyscript_wrinkerThreshold');
-                        localStorage.removeItem('buyscript_maintainPledge');
-                        localStorage.removeItem('buyscript_reserve');
-                        localStorage.removeItem('buyscript_autoclick');
-                        localStorage.removeItem('buyscript_upgradeDragon');
-                        localStorage.removeItem('buyscript_upgradeSanta');
-                        localStorage.removeItem('buyscript_autoReset');
-                        localStorage.removeItem('buyscript_shoppingList');
-
-                        CookieAuto.loadShoppingList();
-                        Game.prefs.buyscript_abbuild = 1;
-                        Game.prefs.buyscript_abup = 1;
-                        Game.prefs.buyscript_abac = 0;
-                        Game.prefs.buyscript_reserve = 0;
-
-                        Game.prefs.buyscript_santaup = 0;
-                        Game.prefs.buyscript_dragonup = 0;
-                    }
                 }
 
                 window.CookieAuto = CookieAuto;
