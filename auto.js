@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-b
+// @version      0.1.0-c
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -158,7 +158,7 @@ var CookieAuto = {};
                 for (let o of this.shoppingList) {
                     if (o.constructor == Game.Upgrade) {
                         // Is upgrade 60 seconds or less out
-                        if (Game.cookies + (Game.cookiesPs*60) >= o.getPrice()) {
+                        if (o.unlocked && Game.cookies + (Game.cookiesPs*60) >= o.getPrice()) {
                             buffer.push(o);
                         }
                     } else if (!o.locked) {
