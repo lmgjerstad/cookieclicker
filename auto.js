@@ -37,7 +37,7 @@ var CookieAuto = {};
     let q = css_selector => document.querySelectorAll(css_selector);
 
 
-    let roi = () => (() => {
+    let roi = (() => {
         // cursor upgrades
         let cursor_cps = () => Game.Objects.Cursor.storedTotalCps * Game.globalCpsMult;
 
@@ -182,20 +182,37 @@ var CookieAuto = {};
         return seconds * cps;
     };
 
+    /**
+     * Calculate how many cookies we need before purchasing an object.
+     *
+     * @param {!Object} goal The object to be purchased.
+     * @return Number of cookies needed before purchase.
+     */
+    let target = goal => getLuckyReserve() + goal.getPrice();
+
+
+    /**
+     * Calculate how long it will take to reach a certain goal.
+     *
+     * @param {!Object|number} goal The object to be purchased.
+     * @return Number of seconds before there will be enough cookies.
+     */
+    let ttl = goal => {
+        let cookiesNeeded;
+        if (typeof(goal) == "object") {
+            cookiesNeeded = target(goal);
+        } else {
+            cookiesNeeded = goal;
+        }
+        let cookiesRemaining = cookiesNeeded - Game.cookies;
+        if (cookiesRemaining < 0) return 0;
+        return cookiesRemaining / Game.cookiesPs;
+    };
+
     if (typeof window.CookieAuto === "undefined") {
         var CookieAuto = {
-            roi : roi(),
-            ttl : function (goal) {
-                let cookiesNeeded;
-                if (typeof(goal) == "object") {
-                    cookiesNeeded = this.target(goal);
-                } else {
-                    cookiesNeeded = goal;
-                }
-                let cookiesRemaining = cookiesNeeded - Game.cookies;
-                if (cookiesRemaining < 0) return 0;
-                return cookiesRemaining / Game.cookiesPs;
-            },
+            roi : roi,
+            ttl : ttl,
             shoppingList : [],
             validShoppingListItem : function (o) {
                 if (o.constructor == Game.Object) {
@@ -366,9 +383,7 @@ var CookieAuto = {};
                 localStorage.setItem("buyscript_upgradeSanta", this.control.upgradeSanta);
             },
             control : settings,
-            target : function (o) {
-                return this.getLuckyReserve() + o.getPrice();
-            },
+            target : target,
             format : function(num) {
                 return numberFormatters[1](num);
             },
