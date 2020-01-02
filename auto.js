@@ -36,6 +36,7 @@ var CookieAuto = {};
 
     let q = css_selector => document.querySelectorAll(css_selector);
 
+
     let roi = () => (() => {
         // cursor upgrades
         let cursor_cps = () => Game.Objects.Cursor.storedTotalCps * Game.globalCpsMult;
@@ -143,6 +144,44 @@ var CookieAuto = {};
             return undefined;
         };
     })();
+
+    /**
+     * Lucky is maximized when 15% of the cookies in the bank are at
+     * least 15 minutes worth of production.  This effect also stacks with
+     * "frenzy"
+     */
+    let getLuckyReserve = () => {
+        // Skip if reservation not set.
+        if (!settings.reserve) {
+            return 0;
+        }
+
+        // If We're less than 2 hours into a run, don't bother.
+        let date = new Date();
+        date.setTime(Date.now() - Game.startDate);
+        if (date.getTime() < 2 * 60 * 60 * 1000) {
+            return 0;
+        }
+
+        // Start with 6000, since 15% of 6000 seconds is 15 minutes
+        let seconds = 6000;
+        let cps = Game.cookiesPs;
+
+        // If get lucky is owned, it then the frenzy stack is possible.
+        if (Game.Upgrades["Get lucky"].bought) {
+            cps *= 7;
+        }
+
+        // Ignore any temporary buffs, they don't stack anyway.
+        cps = Game.buffs.map(x => x.multCpS).reduce((a,b) => a / b, cps);
+
+        // The calculation of CpS doesn't account for wrinklers, so we drop
+        // them from the CpS
+        cps /= (1 - (Game.wrinklers.filter(x => x.close).length / 20));
+
+        return seconds * cps;
+    };
+
     if (typeof window.CookieAuto === "undefined") {
         var CookieAuto = {
             roi : roi(),
@@ -301,42 +340,7 @@ var CookieAuto = {};
                     p.buy();
                 }
             },
-            /**
-             * Lucky is maximized when 15% of the cookies in the bank are at
-             * least 15 minutes worth of production.  This effect also stacks with
-             * "frenzy"
-             */
-            getLuckyReserve : function () {
-                // Skip if reservation not set.
-                if (!this.control.reserve) {
-                    return 0;
-                }
-
-                // If We're less than 2 hours into a run, don't bother.
-                let date = new Date();
-                date.setTime(Date.now() - Game.startDate);
-                if (date.getTime() < 2 * 60 * 60 * 1000) {
-                    return 0;
-                }
-
-                // Start with 6000, since 15% of 6000 seconds is 15 minutes
-                let seconds = 6000;
-                let cps = Game.cookiesPs;
-
-                // If get lucky is owned, it then the frenzy stack is possible.
-                if (Game.Upgrades["Get lucky"].bought) {
-                    cps *= 7;
-                }
-
-                // Ignore any temporary buffs, they don't stack anyway.
-                cps = Game.buffs.map(x => x.multCpS).reduce((a,b) => a / b, cps);
-
-                // The calculation of CpS doesn't account for wrinklers, so we drop
-                // them from the CpS
-                cps /= (1 - (Game.wrinklers.filter(x => x.close).length / 20));
-
-                return seconds * cps;
-            },
+            getLuckyReserve : getLuckyReserve,
             toggleBuilding : function() {
                 this.control.buyBuildings = !this.control.buyBuildings;
                 localStorage.setItem("buyscript_buyBuildings", this.control.buyBuildings);
