@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-d
+// @version      0.1.0-e
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -193,7 +193,7 @@ var CookieAuto = {};
         }
 
         // Ignore any temporary buffs, they don't stack anyway.
-        cps = Game.buffs.map(x => x.multCpS).reduce((a,b) => a / b, cps);
+        cps = Object.values(Game.buffs).map(x => x.multCpS).reduce((a,b) => a / b, cps);
 
         // The calculation of CpS doesn't account for wrinklers, so we drop
         // them from the CpS
