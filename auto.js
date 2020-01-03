@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-b
+// @version      0.1.0-d
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -408,6 +408,30 @@ var CookieAuto = {};
                 settings.reserve = !settings.reserve;
                 saveSettings();
             },
+            toggleTTL : function() {
+                settings.considerTTL = !settings.considerTTL;
+                saveSettings();
+            },
+            toggleGoldenCookies : function() {
+                settings.popGoldenCookies = !settings.popGoldenCookies;
+                saveSettings();
+            },
+            toggleWrathCookies : function() {
+                settings.popWrathCookies = !settings.popWrathCookies;
+                saveSettings();
+            },
+            toggleReindeer : function() {
+                settings.popReindeer = !settings.popReindeer;
+                saveSettings();
+            },
+            toggleWrinklers : function() {
+                settings.popWrinklers = !settings.popWrinklers;
+                saveSettings();
+            },
+            togglePledge : function() {
+                settings.maintainPledge = !settings.maintainPledge;
+                saveSettings();
+            },
             toggleDragon : function() {
                 settings.upgradeDragon = !settings.upgradeDragon;
                 saveSettings();
@@ -548,6 +572,12 @@ var CookieAuto = {};
                 Game.prefs.buyscript_abup = CookieAuto.control.buyUpgrades?1:0;
                 Game.prefs.buyscript_abac = CookieAuto.control.autoclick?1:0;
                 Game.prefs.buyscript_reserve = CookieAuto.control.reserve?1:0;
+                Game.prefs.buyscript_cttl = CookieAuto.control.considerTTL?1:0;
+                Game.prefs.buyscript_pgc = CookieAuto.control.popGoldenCookies?1:0;
+                Game.prefs.buyscript_pwc = CookieAuto.control.popWrathCookies?1:0;
+                Game.prefs.buyscript_rein = CookieAuto.control.popReindeer?1:0;
+                Game.prefs.buyscript_wrnk = CookieAuto.control.popWrinklers?1:0;
+                Game.prefs.buyscript_pledge = CookieAuto.control.maintainPledge?1:0;
 
                 Game.prefs.buyscript_santaup = CookieAuto.control.upgradeSanta?1:0;
                 Game.prefs.buyscript_dragonup = CookieAuto.control.upgradeDragon?1:0;
@@ -598,6 +628,12 @@ var CookieAuto = {};
                             Game.WriteButton('buyscript_abup','buyscript_abup','Upgrade autobuyers ON','Upgrade autobuyers OFF','CookieAuto.toggleUpgrade();')+'<label>(Enable/disable the upgrade autobuyers)</label><br>'+
                             Game.WriteButton('buyscript_abac','buyscript_abac','Autoclicker ON','Autoclicker OFF','CookieAuto.toggleAutoclicker();')+'<label>(Enable/disable the autoclicker)</label><br>'+
                             Game.WriteButton('buyscript_reserve','buyscript_reserve','Reserve ON','Reserve OFF','CookieAuto.toggleReserve();')+'<label>(Reserve cookies for after a purchase)</label><br>'+
+                            Game.WriteButton('buyscript_cttl','buyscript_cttl','Consider Time-To-Buy ON','Consider Time-To-Buy OFF','CookieAuto.toggleTTL();')+'<label>(Take the amount of time it takes to purchase something into consideration)</label><br>'+
+                            Game.WriteButton('buyscript_pgc','buyscript_pgc','Golden Cookies ON','Golden Cookies OFF','CookieAuto.toggleGoldenCookies();')+'<label>(Click all golden cookies automatically)</label><br>'+
+                            Game.WriteButton('buyscript_pwc','buyscript_pwc','Wrath Cookies ON','Wrath Cookies OFF','CookieAuto.toggleWrathCookies();')+'<label>(Click all wrath cookies automatically)</label><br>'+
+                            Game.WriteButton('buyscript_rein','buyscript_rein','Reindeer ON','Reindeer OFF','CookieAuto.toggleReindeer();')+'<label>(Click reindeer automatically)</label><br>'+
+                            Game.WriteButton('buyscript_wrnk','buyscript_wrnk','Wrinklers ON','Wrinklers OFF','CookieAuto.toggleWrinklers();')+'<label>(Click wrinklers automatically)</label><br>'+
+                            Game.WriteButton('buyscript_pledge','buyscript_pledge','Maintain Elder Pledge ON','Maintain Elder Pledge OFF','CookieAuto.togglePledge();')+'<label>(Maintain the elder pledge upgrade)</label><br>'+
                             (Game.Has('A crumbly egg')?Game.WriteButton('buyscript_dragonup','buyscript_dragonup','Dragon upgrades ON','Dragon upgrades OFF','CookieAuto.toggleDragon();')+'<label>(Enable/disable automatic dragon upgrades)</label><br>':'')+
                             (Game.Has('A festive hat')?Game.WriteButton('buyscript_santaup','buyscript_santaup','Santa upgrades ON','Santa upgrades OFF','CookieAuto.toggleSanta();')+'<label>(Enable/disable automatic santa upgrades)</label><br>':'')+
                             CookieAuto.generateIconTableData()+
