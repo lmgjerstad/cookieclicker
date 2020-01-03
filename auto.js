@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-e
+// @version      0.1.0-f
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -225,7 +225,7 @@ var CookieAuto = {};
             cookiesNeeded = goal;
         }
         let cookiesRemaining = cookiesNeeded - Game.cookies;
-        if (cookiesRemaining < 0) return 0;
+        if (cookiesRemaining <= 0) return 0;
         return cookiesRemaining / Game.cookiesPs;
     };
 
@@ -290,7 +290,7 @@ var CookieAuto = {};
 
     let bestBuy = () => {
         let objects = [];
-        if (settings.buyBUildings) {
+        if (settings.buyBuildings) {
             objects = objects.concat(Object.values(Game.Objects));
         }
         if (settings.buyUpgrades) {
