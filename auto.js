@@ -271,7 +271,7 @@ var CookieAuto = {};
     let nextOnShoppingList = () => {
         let max_price = Game.cookiesPs*60 + Game.cookies;
         let order = (a,b) => a.getPrice() - b.getPrice();
-        return Array.from(shoppingList.values)
+        return Array.from(shoppingList.values())
                     .filter(x => x.getPrice() < max_price)
                     .filter(x => x.unlocked && !x.bought)
                     .sort(order)[0]
