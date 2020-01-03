@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-e
+// @version      0.1.0-d
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -288,110 +288,116 @@ var CookieAuto = {};
 
     let inShoppingList = me => shoppingList.has(me.name);
 
+    let bestBuy = () => {
+        let objects = [];
+        if (settings.buyBUildings) {
+            objects = objects.concat(Object.values(Game.Objects));
+        }
+        if (settings.buyUpgrades) {
+            objects = objects.concat(
+                Object.values(Game.UpgradesInStore).filter(x => !x.bought));
+        }
+        objects = objects.map(x => [x, roi(x)]).filter(x => x[1] != undefined);
+        if (objects.length == 0) {
+            return undefined;
+        }
+        if (settings.considerTTL) {
+            objects = objects.map(x => [x[0], x[1] + ttl(x[0])]);
+        }
+        let best = objects.reduce((a, b) => a[1] < b[1] ? a : b);
+        return best[0];
+    };
+
+    let maybeUpgradeDragon = () => {
+        if (settings.upgradeDragon && Game.Has("A crumbly egg")) {
+            Game.UpgradeDragon();
+        }
+    };
+
+    let maybeUpgradeSanta = () => {
+        if (settings.upgradeSanta && Game.Has("A festive hat")) {
+            Game.UpgradeSanta();
+        }
+    };
+
+    let format = num => numberFormatters[1](num);
+
+    let buyBest = () => {
+        let done = false;
+        let itemsPurchased = false;
+        while (!done) {
+            maybeUpgradeDragon();
+            maybeUpgradeSanta();
+            let o = nextOnShoppingList() || bestBuy();
+            if (o === undefined) {
+                return;
+            }
+            let price = o.getPrice();
+            if (Game.cookies > getLuckyReserve() + price) {
+                console.log('buying ' + o.name);
+                if (o.constructor == Game.Object) {
+                    o.buy(1);
+                } else {
+                    o.buy();
+                }
+                itemsPurchased = true;
+            } else {
+                if (itemsPurchased) {
+                    console.log('next ' + o.name + ' => ' + format(target(o)));
+                }
+                done = true;
+            }
+        }
+
+        Game.UpdateMenu();
+    };
+
+    let popShimmers = () => {
+        for (let shimmer of Game.shimmers.reverse()) {
+            if (shimmer.wrath) {
+                if (settings.popWrathCookies) shimmer.pop();
+            } else if (shimmer.type == "golden") {
+                if (settings.popGoldenCookies) shimmer.pop();
+            } else {
+                if (settings.popReindeer) shimmer.pop();
+            }
+        }
+        if (settings.popWrinklers) {
+            for (let wrinkler of Game.wrinklers) {
+                if (wrinkler.close == 1) {
+                    if (settings.wrinklerThreshold <= wrinkler.sucked) {
+                        wrinkler.hp = 0;
+                    }
+                }
+            }
+        }
+    };
+
+    let pledge = () => {
+        if (!settings.maintainPledge) return;
+        let p = Game.Upgrades["Elder Pledge"];
+        if (p.unlocked && !p.bought) {
+            p.buy();
+        }
+    };
+
+    let toggleSetting = name => {
+        settings[name] = !settings[name];
+        saveSettings();
+    };
+
     if (typeof window.CookieAuto === "undefined") {
         var CookieAuto = {
             roi : roi,
             ttl : ttl,
-            bestBuy : function () {
-                let o, min_roi, me, my_roi;
-                if (settings.buyBuildings) {
-                    for (let me of Object.values(Game.Objects)) {
-                        my_roi = this.roi(me);
-                        if (my_roi == undefined) continue;
-                        if (settings.considerTTL) {
-                            my_roi += this.ttl(me);
-                        }
-                        if (o === undefined || my_roi < min_roi) {
-                            o = me;
-                            min_roi = my_roi;
-                        }
-                    }
-                }
-                if (settings.buyUpgrades) {
-                    for (let me of Game.UpgradesInStore) {
-                        if (me.bought) continue;
-                        my_roi = this.roi(me);
-                        if (my_roi == undefined) continue;
-                        if (settings.considerTTL) {
-                            my_roi += this.ttl(me);
-                        }
-                        if (o === undefined || my_roi < min_roi) {
-                            o = me;
-                            min_roi = my_roi;
-                        }
-                    }
-                }
-
-                return o;
-            },
-            buyBest : function () {
-                let done = false;
-                let itemsPurchased = false;
-                while (!done) {
-                    this.maybeUpgradeDragon();
-                    this.maybeUpgradeSanta();
-                    let o = nextOnShoppingList() || this.bestBuy();
-                    if (o === undefined) {
-                        return;
-                    }
-                    let price = o.getPrice();
-                    // Re-written as Game.cookies > this.getLuckyReserve() + price
-                    if ((Game.cookies - price) > this.getLuckyReserve()) {
-                        console.log('buying ' + o.name);
-                        if (o.constructor == Game.Object) {
-                            o.buy(1);
-                        } else {
-                            o.buy();
-                        }
-                        itemsPurchased = true;
-                    } else {
-                        if (itemsPurchased) {
-                            console.log('next ' + o.name + ' => ' + this.format(this.target(o)));
-                        }
-                        done = true;
-                    }
-                }
-
-                Game.UpdateMenu();
-            },
-            popShimmers : function () {
-                for (let shimmer of Game.shimmers.reverse()) {
-                    if (shimmer.wrath) {
-                        if (settings.popWrathCookies) shimmer.pop();
-                    } else if (shimmer.type == "golden") {
-                        if (settings.popGoldenCookies) shimmer.pop();
-                    } else {
-                        if (settings.popReindeer) shimmer.pop();
-                    }
-                }
-                if (settings.popWrinklers) {
-                    for (let wrinkler of Game.wrinklers) {
-                        if (wrinkler.close == 1) {
-                            if (settings.wrinklerThreshold <= wrinkler.sucked) {
-                                wrinkler.hp = 0;
-                            }
-                        }
-                    }
-                }
-            },
-            maybeUpgradeDragon : function () {
-                if (settings.upgradeDragon && Game.Has("A crumbly egg")) {
-                    Game.UpgradeDragon();
-                }
-            },
-            maybeUpgradeSanta : function () {
-                if (settings.upgradeSanta && Game.Has("A festive hat")) {
-                    Game.UpgradeSanta();
-                }
-            },
-            pledge : function () {
-                if (!settings.maintainPledge) return;
-                let p = Game.Upgrades["Elder Pledge"];
-                if (p.unlocked && !p.bought) {
-                    p.buy();
-                }
-            },
+            bestBuy : bestBuy,
+            buyBest : buyBest,
+            popShimmers : popShimmers,
+            maybeUpgradeDragon : maybeUpgradeDragon,
+            maybeUpgradeSanta : maybeUpgradeSanta,
+            pledge : pledge,
             getLuckyReserve : getLuckyReserve,
+            nextOnShoppingList : nextOnShoppingList,
             toggleBuilding : function() {
                 settings.buyBuildings = !settings.buyBuildings;
                 saveSettings();
@@ -442,9 +448,7 @@ var CookieAuto = {};
             },
             control : settings,
             target : target,
-            format : function(num) {
-                return numberFormatters[1](num);
-            },
+            format : format,
             updateGoalValue : function () {
                 if (Game.onMenu == 'stats') {
                     let nextBuy=(nextOnShoppingList()!==undefined?nextOnShoppingList():CookieAuto.bestBuy());
