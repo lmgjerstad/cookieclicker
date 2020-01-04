@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-g
+// @version      0.1.0-h
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -449,8 +449,9 @@ var CookieAuto = {};
             control : settings,
             target : target,
             format : format,
+            prevTarget : null,
             updateGoalValue : function () {
-                if (Game.onMenu == 'stats') {
+                if (this.ui.showing) {
                     let nextBuy=(nextOnShoppingList()!==undefined?nextOnShoppingList():CookieAuto.bestBuy());
                     let isNext = nextBuy!==undefined;
                     let nextBuyIcon,nextBuyType,price;
@@ -460,7 +461,15 @@ var CookieAuto = {};
 
                         price = nextBuy.getPrice();
                     }
-                    q('#buyingNext')[0].innerHTML = (isNext?'<div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+'</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+'</small><div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">'+Beautify(CookieAuto.getLuckyReserve() + price+1)+'</div><div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:'+(100-((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100))+'%;transition:right 0.5s;"></div></div>':'<div class="framed" style="width: 50%; margin: 0 auto; padding-bottom: 8px; font-size: 4em; color: #999; text-align: center;">Disabled</div>')
+
+                    let bnelems = q('#buyingNext')[0].children;
+
+                    bnelems[0].style.backgroundPosition = nextBuyIcon[0]+'px '+nextBuyIcon[1]+'px';
+                    bnelems[1].innerText = Beautify(nextBuy.getPrice());
+                    bnelems[2].innerText = nextBuy.name;
+                    bnelems[3].innerText = nextBuyType
+                    bnelems[4].innerText = Beautify(target(nextBuy));
+                    bnelems[5].children[0].style.right = (100-((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)) + '%';
                 }
             },
             loop : function () {
@@ -477,6 +486,8 @@ var CookieAuto = {};
                 }
 
                 CookieAuto.updateGoalValue();
+
+                this.prevTarget = (nextOnShoppingList()!==undefined?nextOnShoppingList():CookieAuto.bestBuy());
 
                 CookieAuto.buyBest();
                 CookieAuto.popShimmers();
@@ -637,6 +648,20 @@ var CookieAuto = {};
                            Game.WriteButton('buyscript_dragonup','buyscript_dragonup','Dragon upgrades ON','Dragon upgrades OFF','CookieAuto.toggleDragon();')+'<label>(Enable/disable automatic dragon upgrades)</label><br>'+
                            Game.WriteButton('buyscript_santaup','buyscript_santaup','Santa upgrades ON','Santa upgrades OFF','CookieAuto.toggleSanta();')+'<label>(Enable/disable automatic santa upgrades)</label><br>'+
                            '</div>'+
+                           '</div>'+
+                           '<div class="subsection">'+
+                           '<div class="title">Buying Next</div>'+
+                           '<div class="listing">'+
+                           '</div>'+
+                           '<div id="buyingNext" class="framed" style="width: 70%; margin: 0 auto; padding-bottom: 8px;">'+
+                           '<div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position:-1200px -336px;"></div>'+
+                           '<div class="price plain" style="float:right;">&infin;</div>'+
+                           '<div class="name">Rainbow cookie</div>'+
+                           '<small>[Absolutely nothing]</small>'+
+                           '<div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">&infin; &times; &infin;</div>'+
+                           '<div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:0;transition:right 0.5s;"></div></div>'+
+                           '</div>'+
+                           '</div>'+
                            '<div class="subsection">'+
                            '<div class="title">Shopping List</div>'+
                            '<div class="listing">'+
@@ -682,48 +707,6 @@ var CookieAuto = {};
                 document.body.appendChild(menuButton);
                 Game.attachTooltip(menuButton,'<div style="padding:8px;width:250px;text-align:center;">CookieAuto Interface<br><small>ᵇʸ Lance Gjerstad, Adrian Gjerstad</small></div>','this');
                 CookieAuto.init();
-
-                let oldUpdateMenu = Game.UpdateMenu;
-                Game.UpdateMenu = function() {
-                    let menu = document.getElementById('menu');
-                    menu.style.display = 'none';
-                    oldUpdateMenu.call(Game);
-                    if (Game.onMenu == 'stats') {
-                        let subsections = menu.getElementsByClassName('subsection');
-                        let last_subsection = subsections[subsections.length - 1];
-                        let nextBuy=(nextOnShoppingList()!==undefined?nextOnShoppingList():CookieAuto.bestBuy());
-
-                        let isNext = nextBuy!==undefined;
-                        let nextBuyIcon,nextBuyType,price;
-                        if (isNext) {
-                            nextBuyIcon = (nextBuy instanceof Game.Upgrade?[nextBuy.icon[0]*-48, nextBuy.icon[1]*-48]:[(nextBuy.iconColumn)*-48, 0]);
-                            nextBuyType = (nextBuy instanceof Game.Object?'[owned : '+nextBuy.amount+']':(nextBuy instanceof Game.Upgrade?(nextBuy.pool!==''?'<span style="color:blue;">['+nextBuy.pool.substr(0,1).toUpperCase() + nextBuy.pool.substr(1)+']</span>':'[Upgrade]'):'<ERR>'))+'';
-
-                            price = nextBuy.getPrice();
-                        }
-                        let str = ''+
-                            '<div class="subsection">'+
-                            '<div class="title">CookieAuto</div>'+
-                            '<div class="listing">'+
-                            '<b>Buying Next :</b>'+
-                           (isNext?
-                             '<div id="buyingNext" class="framed" style="width: 50%; margin: 0 auto; padding-bottom: 8px;"><div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position: '+
-                             nextBuyIcon[0]+'px '+nextBuyIcon[1]+
-                             'px;"></div><div class="price plain" style="float:right;">'+Beautify(nextBuy.getPrice())+
-                             '</div><div class="name">'+nextBuy.name+'</div><small>'+nextBuyType+
-                             '</small><div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">'+
-                             Beautify(CookieAuto.getLuckyReserve() + price+1)+'</div><div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:'+
-                             (100-((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100))+
-                             '%;transition:right 0.5s;"></div></div></div>'
-                                    :
-                             '<div class="framed" style="width: 50%; margin: 0 auto; padding-bottom: 8px; font-size: 4em; color: #999; text-align: center;">Disabled</div>'
-                           )
-                            '</div>'+
-                            '</div>';
-                        last_subsection.insertAdjacentHTML("beforebegin", str);
-                    }
-                    menu.style.display = '';
-                };
 
                 Game.crateTooltip=function(me,context) {
                     var tags=[];
