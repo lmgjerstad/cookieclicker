@@ -464,7 +464,7 @@ var CookieAuto = {};
                 }
             },
             loop : function () {
-                if (CookieAuto.control.autoReset && CookieAuto.control.autoReset > Game.resets) {
+                if (settings.autoReset && settings.autoReset > Game.resets) {
                     if (Game.OnAscend) {
                         Game.Reincarnate(true);
                     } else if (Game.AscendTimer > 0) {
@@ -478,10 +478,6 @@ var CookieAuto = {};
 
                 CookieAuto.updateGoalValue();
 
-                if (Game.onMenu !== "" && CookieAuto.ui.showing) {
-                    CookieAuto.ui.showMenu.call(CookieAuto.ui);
-                }
-
                 CookieAuto.buyBest();
                 CookieAuto.popShimmers();
                 CookieAuto.pledge();
@@ -492,7 +488,11 @@ var CookieAuto = {};
 
                 this.shoppingListSortMode = this.sorting.price;
 
-                this.ui.init.call(this.ui);
+                this.ui.init();
+
+                q('#prefsButton')[0].onclick = () => {if(this.ui.showing)this.ui.showMenu()};
+                q('#statsButton')[0].onclick = () => {if(this.ui.showing)this.ui.showMenu()};
+                q('#logButton')[0].onclick = () => {if(this.ui.showing)this.ui.showMenu()};
 
                 this.buyBest();
                 this.interval = setInterval(this.loop, 500);
@@ -576,35 +576,35 @@ var CookieAuto = {};
 
             ui : {
                 showing : false,
-                menuelt : null,
+                menuelem : null,
                 init : function () {
-                    this.menuelt = document.createElement('div');
-                    this.menuelt.style.position = "absolute";
-                    this.menuelt.style.left = "calc(30% + 16px)";
-                    this.menuelt.style.top = "144px";
-                    this.menuelt.style.width = "calc(70vw - 348px)";
-                    this.menuelt.style.height = "calc(100vh - 144px)";
-                    this.menuelt.style.wordWrap = "break-word";
-                    this.menuelt.style.zIndex = "10";
-                    this.menuelt.style.background = "#000 url(img/darkNoise.jpg)";
-                    this.menuelt.style.overflow = "auto";
-                    this.menuelt.style.display = "none";
+                    this.menuelem = document.createElement('div');
+                    this.menuelem.style.position = "absolute";
+                    this.menuelem.style.left = "calc(30% + 16px)";
+                    this.menuelem.style.top = "144px";
+                    this.menuelem.style.width = "calc(70vw - 348px)";
+                    this.menuelem.style.height = "calc(100vh - 144px)";
+                    this.menuelem.style.wordWrap = "break-word";
+                    this.menuelem.style.zIndex = "10";
+                    this.menuelem.style.background = "#000 url(img/darkNoise.jpg)";
+                    this.menuelem.style.overflow = "auto";
+                    this.menuelem.style.display = "none";
 
-                    document.body.appendChild(this.menuelt);
+                    document.body.appendChild(this.menuelem);
 
-                    Game.prefs.buyscript_abbuild = CookieAuto.control.buyBuildings?1:0;
-                    Game.prefs.buyscript_abup = CookieAuto.control.buyUpgrades?1:0;
-                    Game.prefs.buyscript_abac = CookieAuto.control.autoclick?1:0;
-                    Game.prefs.buyscript_reserve = CookieAuto.control.reserve?1:0;
-                    Game.prefs.buyscript_cttl = CookieAuto.control.considerTTL?1:0;
-                    Game.prefs.buyscript_pgc = CookieAuto.control.popGoldenCookies?1:0;
-                    Game.prefs.buyscript_pwc = CookieAuto.control.popWrathCookies?1:0;
-                    Game.prefs.buyscript_rein = CookieAuto.control.popReindeer?1:0;
-                    Game.prefs.buyscript_wrnk = CookieAuto.control.popWrinklers?1:0;
-                    Game.prefs.buyscript_pledge = CookieAuto.control.maintainPledge?1:0;
+                    Game.prefs.buyscript_abbuild = settings.buyBuildings?1:0;
+                    Game.prefs.buyscript_abup = settings.buyUpgrades?1:0;
+                    Game.prefs.buyscript_abac = settings.autoclick?1:0;
+                    Game.prefs.buyscript_reserve = settings.reserve?1:0;
+                    Game.prefs.buyscript_cttl = settings.considerTTL?1:0;
+                    Game.prefs.buyscript_pgc = settings.popGoldenCookies?1:0;
+                    Game.prefs.buyscript_pwc = settings.popWrathCookies?1:0;
+                    Game.prefs.buyscript_rein = settings.popReindeer?1:0;
+                    Game.prefs.buyscript_wrnk = settings.popWrinklers?1:0;
+                    Game.prefs.buyscript_pledge = settings.maintainPledge?1:0;
 
-                    Game.prefs.buyscript_santaup = CookieAuto.control.upgradeSanta?1:0;
-                    Game.prefs.buyscript_dragonup = CookieAuto.control.upgradeDragon?1:0;
+                    Game.prefs.buyscript_santaup = settings.upgradeSanta?1:0;
+                    Game.prefs.buyscript_dragonup = settings.upgradeDragon?1:0;
 
                     this.populateMenu();
                 },
@@ -614,12 +614,12 @@ var CookieAuto = {};
                         Game.onMenu = "";
                         Game.ShowMenu();
                     }
-                    this.menuelt.style.display = (this.showing?"block":"none");
+                    this.menuelem.style.display = (this.showing?"block":"none");
                 },
                 populateMenu : function () {
                     let str = '';
 
-                    str += '<div class="close menuClose" onclick="CookieAuto.ui.showMenu.call(CookieAuto.ui);">x</div>'+
+                    str += '<div class="close menuClose" onclick="CookieAuto.ui.showMenu();">x</div>'+
                            '<div class="section">CookieAuto Interface</div>'+
                            '<div class="subsection">'+
                            '<div class="title">General</div>'+
@@ -646,7 +646,7 @@ var CookieAuto = {};
                            '</div>'+
                            '</div>'
 
-                    this.menuelt.innerHTML = str;
+                    this.menuelem.innerHTML = str;
                 }
             }
         }
@@ -670,7 +670,7 @@ var CookieAuto = {};
         menuButton.style.border = "3px solid #fff";
         menuButton.style.borderColor = "#ece2b6 #875526 #733726 #dfbc9a";
         menuButton.style.cursor = "pointer";
-        menuButton.onclick = () => CookieAuto.ui.showMenu.call(CookieAuto.ui);
+        menuButton.onclick = () => CookieAuto.ui.showMenu();
 
         // HACK: Overwriting the Game.UpdateMenu function probably shouldn't be something that is done, but this is the only fix I could find
 
@@ -681,35 +681,14 @@ var CookieAuto = {};
                 document.body.appendChild(menuBG);
                 document.body.appendChild(menuButton);
                 Game.attachTooltip(menuButton,'<div style="padding:8px;width:250px;text-align:center;">CookieAuto Interface<br><small>ᵇʸ Lance Gjerstad, Adrian Gjerstad</small></div>','this');
-                CookieAuto.init.call(CookieAuto);
+                CookieAuto.init();
 
                 let oldUpdateMenu = Game.UpdateMenu;
                 Game.UpdateMenu = function() {
                     let menu = document.getElementById('menu');
                     menu.style.display = 'none';
                     oldUpdateMenu.call(Game);
-                    if (Game.onMenu == 'prefs') {
-                        let listings = menu.getElementsByClassName('listing');
-                        let last_listing = listings[listings.length - 1];
-                        let str = ''+
-                            '<div class="title">CookieAuto</div>'+
-                            '<div class="listing">'+
-                            Game.WriteButton('buyscript_abbuild','buyscript_abbuild','Building autobuyers ON','Building autobuyers OFF','CookieAuto.toggleBuilding();')+'<label>(Enable/disable the building autobuyers)</label><br>'+
-                            Game.WriteButton('buyscript_abup','buyscript_abup','Upgrade autobuyers ON','Upgrade autobuyers OFF','CookieAuto.toggleUpgrade();')+'<label>(Enable/disable the upgrade autobuyers)</label><br>'+
-                            Game.WriteButton('buyscript_abac','buyscript_abac','Autoclicker ON','Autoclicker OFF','CookieAuto.toggleAutoclicker();')+'<label>(Enable/disable the autoclicker)</label><br>'+
-                            Game.WriteButton('buyscript_reserve','buyscript_reserve','Reserve ON','Reserve OFF','CookieAuto.toggleReserve();')+'<label>(Reserve cookies for after a purchase)</label><br>'+
-                            Game.WriteButton('buyscript_cttl','buyscript_cttl','Consider Time-To-Buy ON','Consider Time-To-Buy OFF','CookieAuto.toggleTTL();')+'<label>(Take the amount of time it takes to purchase something into consideration)</label><br>'+
-                            Game.WriteButton('buyscript_pgc','buyscript_pgc','Golden Cookies ON','Golden Cookies OFF','CookieAuto.toggleGoldenCookies();')+'<label>(Click all golden cookies automatically)</label><br>'+
-                            Game.WriteButton('buyscript_pwc','buyscript_pwc','Wrath Cookies ON','Wrath Cookies OFF','CookieAuto.toggleWrathCookies();')+'<label>(Click all wrath cookies automatically)</label><br>'+
-                            Game.WriteButton('buyscript_rein','buyscript_rein','Reindeer ON','Reindeer OFF','CookieAuto.toggleReindeer();')+'<label>(Click reindeer automatically)</label><br>'+
-                            Game.WriteButton('buyscript_wrnk','buyscript_wrnk','Wrinklers ON','Wrinklers OFF','CookieAuto.toggleWrinklers();')+'<label>(Click wrinklers automatically)</label><br>'+
-                            Game.WriteButton('buyscript_pledge','buyscript_pledge','Maintain Elder Pledge ON','Maintain Elder Pledge OFF','CookieAuto.togglePledge();')+'<label>(Maintain the elder pledge upgrade)</label><br>'+
-                            Game.WriteButton('buyscript_dragonup','buyscript_dragonup','Dragon upgrades ON','Dragon upgrades OFF','CookieAuto.toggleDragon();')+'<label>(Enable/disable automatic dragon upgrades)</label><br>'+
-                            Game.WriteButton('buyscript_santaup','buyscript_santaup','Santa upgrades ON','Santa upgrades OFF','CookieAuto.toggleSanta();')+'<label>(Enable/disable automatic santa upgrades)</label><br>'+
-                            CookieAuto.generateIconTableData()+
-                            '</div>'
-                        last_listing.insertAdjacentHTML("afterend", str);
-                    } else if (Game.onMenu == 'stats') {
+                    if (Game.onMenu == 'stats') {
                         let subsections = menu.getElementsByClassName('subsection');
                         let last_subsection = subsections[subsections.length - 1];
                         let nextBuy=(nextOnShoppingList()!==undefined?nextOnShoppingList():CookieAuto.bestBuy());
