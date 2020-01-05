@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-h
+// @version      0.1.0-i
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -56,6 +56,49 @@ var CookieAuto = {};
     let saveSettings = () => localStorage.setItem('cookie_auto', JSON.stringify(settings));
 
     let q = css_selector => document.querySelectorAll(css_selector);
+
+    let log_ = [];
+
+    let icons = {
+        santa : [18, 9],
+        dragon : [21, 12]
+    };
+
+    let updateUiLog = function () {
+        if (log_.length > 25) {
+            log_.shift();
+        }
+
+        let lelem = q('#calog')[0];
+
+        // HACK: This is not ideal
+        let str = '';
+
+        for (let log of log_) {
+            str += '<div style="border-bottom: 1px solid #333; padding: 8px;overflow: auto;"><div class="icon" style="float: left; margin-left: -8px; margin-top: -8px;background-position:'+log[0]+';"></div><div class="name" style="margin: auto 0;">'+log[1]+'</div><small>'+log[2]+'</small></div>'
+        }
+
+        let setscroll = lelem.scrollTop+240>lelem.scrollHeight;
+
+        lelem.innerHTML = str;
+
+        if (setscroll) lelem.scrollTop = lelem.scrollHeight;
+    }
+
+    let log = function (ico, text, small) {
+        log_.push([(ico[0]*-48)+'px '+(ico[1]*-48)+'px', text, small]);
+        updateUiLog();
+    }
+
+    let logPurchase = function (o) {
+        if (o instanceof Game.Object) {
+            // Buildings
+            log([o.iconColumn,0], 'New '+o.name.toLowerCase()+'', '[owned : '+o.amount+']');
+        } else if (o instanceof Game.Upgrade) {
+            // Obviously an upgrade
+            log(o.icon, '"'+o.name+'"', '['+(o.pool==''?'Upgrade':o.pool.substr(0,1).toUpperCase()+o.pool.substr(1))+']');
+        }
+    }
 
     let roi = (() => {
         // cursor upgrades
@@ -309,14 +352,16 @@ var CookieAuto = {};
     };
 
     let maybeUpgradeDragon = () => {
-        if (settings.upgradeDragon && Game.Has("A crumbly egg")) {
+        if (settings.upgradeDragon && Game.Has("A crumbly egg") && Game.dragonLevels[Game.dragonLevel].cost()) {
             Game.UpgradeDragon();
+            log(icons.dragon, 'A dragon upgrade has been purchased.', '[level : '+Game.dragonLevel+']');
         }
     };
 
     let maybeUpgradeSanta = () => {
-        if (settings.upgradeSanta && Game.Has("A festive hat")) {
+        if (settings.upgradeSanta && Game.Has("A festive hat") && Game.cookies>Math.pow(Game.santaLevel+1,Game.santaLevel+1)) {
             Game.UpgradeSanta();
+            log(icons.santa, 'A santa upgrade has been purchased.', '[level : '+Game.santaLevel+']');
         }
     };
 
@@ -340,6 +385,7 @@ var CookieAuto = {};
                 } else {
                     o.buy();
                 }
+                logPurchase(o);
                 itemsPurchased = true;
             } else {
                 if (itemsPurchased) {
@@ -457,7 +503,7 @@ var CookieAuto = {};
                     let nextBuyIcon,nextBuyType,price;
                     if (isNext) {
                         nextBuyIcon = (nextBuy instanceof Game.Upgrade?[nextBuy.icon[0]*-48, nextBuy.icon[1]*-48]:[(nextBuy.iconColumn)*-48, 0]);
-                        nextBuyType = (nextBuy instanceof Game.Object?'[owned : '+nextBuy.amount+']':(nextBuy instanceof Game.Upgrade?(nextBuy.pool!==''?'<span style="color:blue;">['+nextBuy.pool.substr(0,1).toUpperCase() + nextBuy.pool.substr(1)+']</span>':'[Upgrade]'):'<ERR>'))+'';
+                        nextBuyType = (nextBuy instanceof Game.Object?'[owned : '+nextBuy.amount+']':(nextBuy instanceof Game.Upgrade?(nextBuy.pool!==''?'['+nextBuy.pool.substr(0,1).toUpperCase() + nextBuy.pool.substr(1)+']':'[Upgrade]'):'<ERR>'))+'';
 
                         price = nextBuy.getPrice();
                     }
@@ -649,6 +695,7 @@ var CookieAuto = {};
                            Game.WriteButton('buyscript_santaup','buyscript_santaup','Santa upgrades ON','Santa upgrades OFF','CookieAuto.toggleSanta();')+'<label>(Enable/disable automatic santa upgrades)</label><br>'+
                            '</div>'+
                            '</div>'+
+
                            '<div class="subsection">'+
                            '<div class="title">Buying Next</div>'+
                            '<div class="listing">'+
@@ -662,9 +709,17 @@ var CookieAuto = {};
                            '<div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:0;transition:right 0.5s;"></div></div>'+
                            '</div>'+
                            '</div>'+
+
+                           '<div class="subsection">'+
+                           '<div class="title">Log</div>'+
+                           '<div class="listing">'+
+                           '<div class="framed" id="calog" style="width:70%;height:200px;overflow:auto;margin:0 auto;"></div>'+
+                           '</div>'+
+                           '</div>'+
+
                            '<div class="subsection">'+
                            '<div class="title">Shopping List</div>'+
-                           '<div class="listing">'+
+                           '<div class="listing" style="overflow:auto;">'+
                            // TODO: Insert search bar and filters here
                            CookieAuto.generateIconTableData()+
                            '</div>'+
