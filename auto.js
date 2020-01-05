@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-i
+// @version      0.1.0-j
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -432,6 +432,29 @@ var CookieAuto = {};
         saveSettings();
     };
 
+    let menuBG = document.createElement('div');
+    menuBG.style.position = "absolute";
+    menuBG.style.left = "calc(30vw - 57px)";
+    menuBG.style.bottom = "51px";
+    menuBG.style.zIndex = "10001";
+    menuBG.style.width = "48px";
+    menuBG.style.height = "48px";
+    menuBG.style.background = "#000 url(img/darkNoise.jpg)";
+    menuBG.style.transition = "opacity 1s";
+
+    let menuButton = document.createElement('div');
+    menuButton.className = "icon";
+    menuButton.style.backgroundPosition = "-1536px 0px";
+    menuButton.style.position = "absolute";
+    menuButton.style.left = "calc(30vw - 64px)";
+    menuButton.style.bottom = "48px";
+    menuButton.style.zIndex = "10002";
+    menuButton.style.border = "3px solid #fff";
+    menuButton.style.borderColor = "#ece2b6 #875526 #733726 #dfbc9a";
+    menuButton.style.cursor = "pointer";
+    menuButton.onclick = () => CookieAuto.ui.showMenu();
+    menuButton.style.transition = "opacity 1s";
+
     if (typeof window.CookieAuto === "undefined") {
         var CookieAuto = {
             roi : roi,
@@ -529,6 +552,24 @@ var CookieAuto = {};
                             Game.Ascend(true);
                         }
                     }
+                }
+
+                if (Game.cssClasses.includes("ascendIntro")) {
+                    if (CookieAuto.ui.showing) {
+                        CookieAuto.ui.showing = false;
+                        CookieAuto.ui.menuelem.style.opacity = "0";
+                        log_ = [];
+                    }
+
+                    if (menuButton.style.opacity != "0") {
+                        menuButton.style.opacity = "0";
+                        menuBG.style.opacity = "0";
+                    }
+                } else if (!Game.cssClasses.includes("ascending") && menuButton.style.opacity == "0") {
+                    menuButton.style.opacity = "1";
+                    menuBG.style.opacity = "1";
+                    CookieAuto.ui.menuelem.style.display = "none";
+                    CookieAuto.ui.menuelem.style.opacity = "1";
                 }
 
                 CookieAuto.updateGoalValue();
@@ -646,6 +687,7 @@ var CookieAuto = {};
                     this.menuelem.style.background = "#000 url(img/darkNoise.jpg)";
                     this.menuelem.style.overflow = "auto";
                     this.menuelem.style.display = "none";
+                    this.menuelem.style.transition = "opacity 1s";
 
                     document.body.appendChild(this.menuelem);
 
@@ -730,27 +772,6 @@ var CookieAuto = {};
                 }
             }
         }
-
-        let menuBG = document.createElement('div');
-        menuBG.style.position = "absolute";
-        menuBG.style.left = "calc(30vw - 57px)";
-        menuBG.style.bottom = "51px";
-        menuBG.style.zIndex = "10001";
-        menuBG.style.width = "48px";
-        menuBG.style.height = "48px";
-        menuBG.style.background = "#000 url(img/darkNoise.jpg)";
-
-        let menuButton = document.createElement('div');
-        menuButton.className = "icon";
-        menuButton.style.backgroundPosition = "-1536px 0px";
-        menuButton.style.position = "absolute";
-        menuButton.style.left = "calc(30vw - 64px)";
-        menuButton.style.bottom = "48px";
-        menuButton.style.zIndex = "10002";
-        menuButton.style.border = "3px solid #fff";
-        menuButton.style.borderColor = "#ece2b6 #875526 #733726 #dfbc9a";
-        menuButton.style.cursor = "pointer";
-        menuButton.onclick = () => CookieAuto.ui.showMenu();
 
         // HACK: Overwriting the Game.UpdateMenu function probably shouldn't be something that is done, but this is the only fix I could find
 
