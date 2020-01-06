@@ -690,6 +690,7 @@ var CookieAuto = {};
                     this.menuelem.style.overflow = "auto";
                     this.menuelem.style.display = "none";
                     this.menuelem.style.transition = "opacity 1s";
+                    this.menuelem.style.zIndex="1001";
 
                     document.body.appendChild(this.menuelem);
 
