@@ -359,7 +359,9 @@ var CookieAuto = {};
     };
 
     let maybeUpgradeSanta = () => {
-        if (settings.upgradeSanta && Game.Has("A festive hat") && Game.cookies>Math.pow(Game.santaLevel+1,Game.santaLevel+1)) {
+        if (settings.upgradeSanta && Game.Has("A festive hat") &&
+            Game.santaLevel < Game.santaLevels.length - 1 &&
+            Game.cookies>Math.pow(Game.santaLevel+1,Game.santaLevel+1)) {
             Game.UpgradeSanta();
             log(icons.santa, 'A santa upgrade has been purchased.', '[level : '+Game.santaLevel+']');
         }
@@ -609,69 +611,11 @@ var CookieAuto = {};
             },
             toggleInShoppingList: toggleInShoppingList,
             sorting : {
-                a2z : [function (a,b) {
-                    let a_=String(a.name),b_=String(b.name);
-                    while (a_[0] == b_[0] && a_ !== undefined && b_ !== undefined) {
-                        a_ = a_.substr(1);
-                        b_ = b_.substr(1);
-                    }
-
-                    if (a_ === "" || a_ === undefined) {
-                        if (b_ === "" || b_ === undefined) {
-                            // The strings are the same
-                            return 0;
-                        }
-                        // a is shorter than b
-                        return -1;
-                    }
-                    if (b_ === "" || b_ === undefined) {
-                        // b is shorter than a
-                        return 1
-                    }
-
-                    return a_.charCodeAt(0)-b_.charCodeAt(0);
-                }, "A to Z"],
-                z2a : [function (a,b) {
-                    let a_=String(a.name),b_=String(b.name);
-                    while (a_[0] == b_[0] && a_ !== undefined && b_ !== undefined) {
-                        a_ = a_.substr(1);
-                        b_ = b_.substr(1);
-                    }
-
-                    if (a_ === "" || a_ === undefined) {
-                        if (b_ === "" || b_ === undefined) {
-                            // The strings are the same
-                            return 0;
-                        }
-                        // a is shorter than b
-                        return 1;
-                    }
-                    if (b_ === "" || b_ === undefined) {
-                        // b is shorter than a
-                        return -1
-                    }
-
-                    return b_.charCodeAt(0)-a_.charCodeAt(0);
-                }, "Z to A"],
-                price : [function (a,b) {
-                    return a.getPrice()-b.getPrice();
-                }, "Price"],
-                revPrice : [function (a,b) {
-                    return b.getPrice()-a.getPrice();
-                }, "Reverse Price"],
+                a2z : [(a,b) => a.name.localeCompare(b.name), "A to Z"],
+                z2a : [(a,b) => b.name.localeCompare(a.name), "Z to A"],
+                price : [(a,b) => a.getPrice() - b.getPrice(), "Price"],
+                revPrice : [(a,b) => b.getPrice() - a.getPrice(), "Reverse Price"],
                 __algos__ : ["a2z", "z2a", "price", "revPrice"]
-            },
-            shoppingListSortMode : null,
-            generateIconTableData : function() {
-                let u = Game.UpgradesByPool[''].concat(Game.UpgradesByPool.tech)
-                                               .sort(this.shoppingListSortMode[0]);
-                let res = '';
-                for (let o of u) {
-                    let x = o.icon[0]*-48;
-                    let y = o.icon[1]*-48;
-                    res += '<div id="shlst'+o.id+'" class="icon" onclick="CookieAuto.toggleInShoppingList(Game.UpgradesById['+o.id+']);" onmouseout="Game.setOnCrate(0);Game.tooltip.shouldHide=1;" onmouseover="if (!Game.mouseDown) {Game.setOnCrate(this);Game.tooltip.dynamic=1;Game.tooltip.draw(this,function(){return function(){return Game.crateTooltip(Game.UpgradesById['+o.id+'],\'shoppingListSelector\');}();},\'\');Game.tooltip.wobble();}" style="padding:0; cursor:pointer; background-position:'+x+'px '+y+'px; float:left; opacity:'+(inShoppingList(o)?'1':'0.2')+';"></div>';
-                }
-                return res;
             },
 
             ui : {
@@ -690,7 +634,7 @@ var CookieAuto = {};
                     this.menuelem.style.overflow = "auto";
                     this.menuelem.style.display = "none";
                     this.menuelem.style.transition = "opacity 1s";
-                    this.menuelem.style.zIndex="1001";
+                    this.menuelem.style.zIndex="1000";
 
                     document.body.appendChild(this.menuelem);
 
