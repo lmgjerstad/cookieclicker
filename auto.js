@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-j
+// @version      0.1.0-k
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -359,9 +359,7 @@ var CookieAuto = {};
     };
 
     let maybeUpgradeSanta = () => {
-        if (settings.upgradeSanta && Game.Has("A festive hat") &&
-            Game.santaLevel < Game.santaLevels.length - 1 &&
-            Game.cookies>Math.pow(Game.santaLevel+1,Game.santaLevel+1)) {
+        if (settings.upgradeSanta && Game.Has("A festive hat") && Game.cookies>Math.pow(Game.santaLevel+1,Game.santaLevel+1)) {
             Game.UpgradeSanta();
             log(icons.santa, 'A santa upgrade has been purchased.', '[level : '+Game.santaLevel+']');
         }
@@ -433,6 +431,8 @@ var CookieAuto = {};
         settings[name] = !settings[name];
         saveSettings();
     };
+
+    let autoclickInterval = 20;
 
     let menuBG = document.createElement('div');
     menuBG.style.position = "absolute";
@@ -600,7 +600,7 @@ var CookieAuto = {};
             },
             update : function () {
                 if (settings.autoclick && !this.autoclicker) {
-                    this.autoclicker = setInterval(Game.ClickCookie, 20);
+                    this.autoclicker = setInterval(Game.ClickCookie, autoclickInterval);
                 }
                 if (!settings.autoclick && this.autoclicker) {
                     clearInterval(this.autoclicker);
@@ -609,10 +609,56 @@ var CookieAuto = {};
             },
             toggleInShoppingList: toggleInShoppingList,
             sorting : {
-                a2z : [(a,b) => a.name.localeCompare(b.name), "A to Z"],
-                z2a : [(a,b) => b.name.localeCompare(a.name), "Z to A"],
-                price : [(a,b) => a.getPrice() - b.getPrice(), "Price"],
-                revPrice : [(a,b) => b.getPrice() - a.getPrice(), "Reverse Price"],
+                a2z : [function (a,b) {
+                    let a_=String(a.name),b_=String(b.name);
+                    while (a_[0] == b_[0] && a_ !== undefined && b_ !== undefined) {
+                        a_ = a_.substr(1);
+                        b_ = b_.substr(1);
+                    }
+
+                    if (a_ === "" || a_ === undefined) {
+                        if (b_ === "" || b_ === undefined) {
+                            // The strings are the same
+                            return 0;
+                        }
+                        // a is shorter than b
+                        return -1;
+                    }
+                    if (b_ === "" || b_ === undefined) {
+                        // b is shorter than a
+                        return 1
+                    }
+
+                    return a_.charCodeAt(0)-b_.charCodeAt(0);
+                }, "A to Z"],
+                z2a : [function (a,b) {
+                    let a_=String(a.name),b_=String(b.name);
+                    while (a_[0] == b_[0] && a_ !== undefined && b_ !== undefined) {
+                        a_ = a_.substr(1);
+                        b_ = b_.substr(1);
+                    }
+
+                    if (a_ === "" || a_ === undefined) {
+                        if (b_ === "" || b_ === undefined) {
+                            // The strings are the same
+                            return 0;
+                        }
+                        // a is shorter than b
+                        return 1;
+                    }
+                    if (b_ === "" || b_ === undefined) {
+                        // b is shorter than a
+                        return -1
+                    }
+
+                    return b_.charCodeAt(0)-a_.charCodeAt(0);
+                }, "Z to A"],
+                price : [function (a,b) {
+                    return a.getPrice()-b.getPrice();
+                }, "Price"],
+                revPrice : [function (a,b) {
+                    return b.getPrice()-a.getPrice();
+                }, "Reverse Price"],
                 __algos__ : ["a2z", "z2a", "price", "revPrice"]
             },
             shoppingListSortMode : null,
@@ -691,6 +737,7 @@ var CookieAuto = {};
                            Game.WriteButton('buyscript_pledge','buyscript_pledge','Maintain Elder Pledge ON','Maintain Elder Pledge OFF','CookieAuto.togglePledge();')+'<label>(Maintain the elder pledge upgrade)</label><br>'+
                            Game.WriteButton('buyscript_dragonup','buyscript_dragonup','Dragon upgrades ON','Dragon upgrades OFF','CookieAuto.toggleDragon();')+'<label>(Enable/disable automatic dragon upgrades)</label><br>'+
                            Game.WriteButton('buyscript_santaup','buyscript_santaup','Santa upgrades ON','Santa upgrades OFF','CookieAuto.toggleSanta();')+'<label>(Enable/disable automatic santa upgrades)</label><br>'+
+                           '<div class="sliderBox"><div style="float:left;">Autoclick Interval</div><div style="float:right;" id="buyscript_acintRightText">'+((1/autoclickInterval)*1000)+' clicks/sec</div><input class="slider" style="clear:both;" type="range" min="1" max="60" step="1" value="'+((1/autoclickInterval)*1000)+'" onmouseup="PlaySound(\'snd/tick.mp3\');" id="buyscript_acint"/></div><br>'+
                            '</div>'+
                            '</div>'+
 
@@ -725,6 +772,19 @@ var CookieAuto = {};
                            '</div>'
 
                     this.menuelem.innerHTML = str;
+
+                    let acint = q('#buyscript_acint')[0]
+
+                    acint.oninput = acint.onchange = () => {
+                        q('#buyscript_acintRightText')[0].innerHTML = acint.value + ' click'+(acint.value=='1'?'':'s')+'/sec';
+
+                        autoclickInterval = ((1/acint.value)*1000);
+
+                        if (settings.autoclick) {
+                            clearInterval(CookieAuto.autoclicker);
+                            CookieAuto.autoclicker = setInterval(Game.ClickCookie, autoclickInterval);
+                        }
+                    }
                 }
             }
         }
