@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-m
+// @version      0.1.0-n
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -52,6 +52,12 @@ var CookieAuto = {};
             return settings;
         }
     })();
+
+    let autoclickInterval = 20;
+
+    let autoclickPs=()=>{
+        return (settings.autoclick?((1/autoclickInterval)*1000)*Game.computedMouseCps:0);
+    }
 
     let saveSettings = () => localStorage.setItem('cookie_auto', JSON.stringify(settings));
 
@@ -123,10 +129,10 @@ var CookieAuto = {};
 
         // clicking gains 1% of cps
         // TODO: Account for whether autoclicking is on or not
-        let mouse_cps = () => Game.cookiesPs * 0.2;
+        let mouse_cps = () => (Game.cookiesPs+autoclickPs()) * 0.2;
 
         // Unlock prestige potential
-        let prestige_cps = multiplier => () => Game.prestige * 0.01 * Game.heavenlyPower * multiplier * Game.cookiesPs;
+        let prestige_cps = multiplier => () => Game.prestige * 0.01 * Game.heavenlyPower * multiplier * (Game.cookiesPs+autoclickPs());
 
         let custom_cps = {
             "Reinforced index finger" : cursor_cps,
@@ -187,9 +193,9 @@ var CookieAuto = {};
                 } else if (o.pool == "cookie") {
                     // Cookies increase 1% per power.
                     if (typeof(o.power) == "function") {
-                        cps = Game.cookiesPs * o.power() / 100;
+                        cps = (Game.cookiesPs+autoclickPs()) * o.power() / 100;
                     } else {
-                        cps = Game.cookiesPs * o.power / 100;
+                        cps = (Game.cookiesPs+autoclickPs()) * o.power / 100;
                     }
                 } else if (o.hasOwnProperty("buildingTie1")) {
                     // Upgrades affecting multiple buildings.  5% for first building, 0.1% for second.
@@ -228,7 +234,7 @@ var CookieAuto = {};
 
         // Start with 6000, since 15% of 6000 seconds is 15 minutes
         let seconds = 6000;
-        let cps = Game.cookiesPs;
+        let cps = (Game.cookiesPs+autoclickPs());
 
         // If get lucky is owned, it then the frenzy stack is possible.
         if (Game.Upgrades["Get lucky"].bought) {
@@ -269,7 +275,7 @@ var CookieAuto = {};
         }
         let cookiesRemaining = cookiesNeeded - Game.cookies;
         if (cookiesRemaining <= 0) return 0;
-        return cookiesRemaining / Game.cookiesPs;
+        return cookiesRemaining / (Game.cookiesPs+autoclickPs());
     };
 
     let shoppingList = new Map();
@@ -312,7 +318,7 @@ var CookieAuto = {};
     };
 
     let nextOnShoppingList = () => {
-        let max_price = Game.cookiesPs*60 + Game.cookies;
+        let max_price = (Game.cookiesPs+autoclickPs())*60 + Game.cookies;
         let order = (a,b) => a.getPrice() - b.getPrice();
         return Array.from(shoppingList.values())
                     .filter(x => x.getPrice() < max_price)
@@ -433,8 +439,6 @@ var CookieAuto = {};
         settings[name] = !settings[name];
         saveSettings();
     };
-
-    let autoclickInterval = 20;
 
     let menuBG = document.createElement('div');
     menuBG.style.position = "absolute";
@@ -559,7 +563,7 @@ var CookieAuto = {};
                     bnelems[3].innerText = nextBuyType
                     bnelems[4].innerText = Beautify(target(nextBuy));
                     bnelems[5].children[0].style.right = (100-((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)) + '%';
-                    bnelems[6].innerText = Math.floor((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)+'% ('+TimeBeautify(ttl(nextBuy)*250)+')';
+                    bnelems[6].innerText = Math.floor((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)+'% ('+TimeBeautify(ttl(nextBuy)*1000)+')';
                 }
             },
             loop : function () {
