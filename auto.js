@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-l
+// @version      0.1.0-m
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -559,7 +559,7 @@ var CookieAuto = {};
                     bnelems[3].innerText = nextBuyType
                     bnelems[4].innerText = Beautify(target(nextBuy));
                     bnelems[5].children[0].style.right = (100-((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)) + '%';
-                    bnelems[6].innerText = Math.floor((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)+'% ('+TimeBeautify(ttl(nextBuy)*500)+')';
+                    bnelems[6].innerText = Math.floor((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)+'% ('+TimeBeautify(ttl(nextBuy)*250)+')';
                 }
             },
             loop : function () {
