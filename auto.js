@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-j
+// @version      0.1.0-k
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -434,6 +434,8 @@ var CookieAuto = {};
         saveSettings();
     };
 
+    let autoclickInterval = 20;
+
     let menuBG = document.createElement('div');
     menuBG.style.position = "absolute";
     menuBG.style.left = "calc(30vw - 57px)";
@@ -600,7 +602,7 @@ var CookieAuto = {};
             },
             update : function () {
                 if (settings.autoclick && !this.autoclicker) {
-                    this.autoclicker = setInterval(Game.ClickCookie, 20);
+                    this.autoclicker = setInterval(Game.ClickCookie, autoclickInterval);
                 }
                 if (!settings.autoclick && this.autoclicker) {
                     clearInterval(this.autoclicker);
@@ -614,18 +616,6 @@ var CookieAuto = {};
                 price : [(a,b) => a.getPrice() - b.getPrice(), "Price"],
                 revPrice : [(a,b) => b.getPrice() - a.getPrice(), "Reverse Price"],
                 __algos__ : ["a2z", "z2a", "price", "revPrice"]
-            },
-            shoppingListSortMode : null,
-            generateIconTableData : function() {
-                let u = Game.UpgradesByPool[''].concat(Game.UpgradesByPool.tech)
-                                               .sort(this.shoppingListSortMode[0]);
-                let res = '';
-                for (let o of u) {
-                    let x = o.icon[0]*-48;
-                    let y = o.icon[1]*-48;
-                    res += '<div id="shlst'+o.id+'" class="icon" onclick="CookieAuto.toggleInShoppingList(Game.UpgradesById['+o.id+']);" onmouseout="Game.setOnCrate(0);Game.tooltip.shouldHide=1;" onmouseover="if (!Game.mouseDown) {Game.setOnCrate(this);Game.tooltip.dynamic=1;Game.tooltip.draw(this,function(){return function(){return Game.crateTooltip(Game.UpgradesById['+o.id+'],\'shoppingListSelector\');}();},\'\');Game.tooltip.wobble();}" style="padding:0; cursor:pointer; background-position:'+x+'px '+y+'px; float:left; opacity:'+(inShoppingList(o)?'1':'0.2')+';"></div>';
-                }
-                return res;
             },
 
             ui : {
@@ -644,6 +634,7 @@ var CookieAuto = {};
                     this.menuelem.style.overflow = "auto";
                     this.menuelem.style.display = "none";
                     this.menuelem.style.transition = "opacity 1s";
+                    this.menuelem.style.zIndex="1000";
 
                     document.body.appendChild(this.menuelem);
 
@@ -691,6 +682,7 @@ var CookieAuto = {};
                            Game.WriteButton('buyscript_pledge','buyscript_pledge','Maintain Elder Pledge ON','Maintain Elder Pledge OFF','CookieAuto.togglePledge();')+'<label>(Maintain the elder pledge upgrade)</label><br>'+
                            Game.WriteButton('buyscript_dragonup','buyscript_dragonup','Dragon upgrades ON','Dragon upgrades OFF','CookieAuto.toggleDragon();')+'<label>(Enable/disable automatic dragon upgrades)</label><br>'+
                            Game.WriteButton('buyscript_santaup','buyscript_santaup','Santa upgrades ON','Santa upgrades OFF','CookieAuto.toggleSanta();')+'<label>(Enable/disable automatic santa upgrades)</label><br>'+
+                           '<div class="sliderBox"><div style="float:left;">Autoclick Interval</div><div style="float:right;" id="buyscript_acintRightText">'+((1/autoclickInterval)*1000)+' clicks/sec</div><input class="slider" style="clear:both;" type="range" min="1" max="60" step="1" value="'+((1/autoclickInterval)*1000)+'" onmouseup="PlaySound(\'snd/tick.mp3\');" id="buyscript_acint"/></div><br>'+
                            '</div>'+
                            '</div>'+
 
@@ -725,6 +717,19 @@ var CookieAuto = {};
                            '</div>'
 
                     this.menuelem.innerHTML = str;
+
+                    let acint = q('#buyscript_acint')[0]
+
+                    acint.oninput = acint.onchange = () => {
+                        q('#buyscript_acintRightText')[0].innerHTML = acint.value + ' click'+(acint.value=='1'?'':'s')+'/sec';
+
+                        autoclickInterval = ((1/acint.value)*1000);
+
+                        if (settings.autoclick) {
+                            clearInterval(CookieAuto.autoclicker);
+                            CookieAuto.autoclicker = setInterval(Game.ClickCookie, autoclickInterval);
+                        }
+                    }
                 }
             }
         }
