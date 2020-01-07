@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-k
+// @version      0.1.0-l
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -459,6 +459,22 @@ var CookieAuto = {};
     menuButton.onclick = () => CookieAuto.ui.showMenu();
     menuButton.style.transition = "opacity 1s";
 
+    let TimeBeautify=(ms)=>{
+        let s = Math.floor(ms/1000)%60;
+        let m = Math.floor(ms/60000)%60;
+        let h = Math.floor(ms/3600000)%24;
+        let d = Math.floor(ms/86400000);
+
+        let res = [];
+
+        if (d!==0) res.push(d+'d');
+        if (h!==0) res.push(h+'h');
+        if (m!==0) res.push(m+'m');
+        if (s!==0) res.push(s+'s');
+
+        return res.join(' ');
+    };
+
     if (typeof window.CookieAuto === "undefined") {
         var CookieAuto = {
             roi : roi,
@@ -524,7 +540,7 @@ var CookieAuto = {};
             format : format,
             prevTarget : null,
             updateGoalValue : function () {
-                if (this.ui.showing) {
+                if (CookieAuto.ui.showing) {
                     let nextBuy=(nextOnShoppingList()!==undefined?nextOnShoppingList():CookieAuto.bestBuy());
                     let isNext = nextBuy!==undefined;
                     let nextBuyIcon,nextBuyType,price;
@@ -543,6 +559,7 @@ var CookieAuto = {};
                     bnelems[3].innerText = nextBuyType
                     bnelems[4].innerText = Beautify(target(nextBuy));
                     bnelems[5].children[0].style.right = (100-((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)) + '%';
+                    bnelems[6].innerText = Math.floor((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)+'% ('+TimeBeautify(ttl(nextBuy)*500)+')';
                 }
             },
             loop : function () {
@@ -576,8 +593,6 @@ var CookieAuto = {};
                     CookieAuto.ui.menuelem.style.opacity = "1";
                 }
 
-                CookieAuto.updateGoalValue();
-
                 this.prevTarget = (nextOnShoppingList()!==undefined?nextOnShoppingList():CookieAuto.bestBuy());
 
                 CookieAuto.buyBest();
@@ -599,6 +614,7 @@ var CookieAuto = {};
                 this.buyBest();
                 this.interval = setInterval(this.loop, 500);
                 this.update();
+                setInterval(this.updateGoalValue, 100);
             },
             update : function () {
                 if (settings.autoclick && !this.autoclicker) {
@@ -616,6 +632,18 @@ var CookieAuto = {};
                 price : [(a,b) => a.getPrice() - b.getPrice(), "Price"],
                 revPrice : [(a,b) => b.getPrice() - a.getPrice(), "Reverse Price"],
                 __algos__ : ["a2z", "z2a", "price", "revPrice"]
+            },
+            shoppingListSortMode : null,
+            generateIconTableData : function() {
+                let u = Game.UpgradesByPool[''].concat(Game.UpgradesByPool.tech)
+                                               .sort(this.shoppingListSortMode[0]);
+                let res = '';
+                for (let o of u) {
+                    let x = o.icon[0]*-48;
+                    let y = o.icon[1]*-48;
+                    res += '<div id="shlst'+o.id+'" class="icon" onclick="CookieAuto.toggleInShoppingList(Game.UpgradesById['+o.id+']);" onmouseout="Game.setOnCrate(0);Game.tooltip.shouldHide=1;" onmouseover="if (!Game.mouseDown) {Game.setOnCrate(this);Game.tooltip.dynamic=1;Game.tooltip.draw(this,function(){return function(){return Game.crateTooltip(Game.UpgradesById['+o.id+'],\'shoppingListSelector\');}();},\'\');Game.tooltip.wobble();}" style="padding:0; cursor:pointer; background-position:'+x+'px '+y+'px; float:left; opacity:'+(inShoppingList(o)?'1':'0.2')+';"></div>';
+                }
+                return res;
             },
 
             ui : {
@@ -665,6 +693,8 @@ var CookieAuto = {};
                 populateMenu : function () {
                     let str = '';
 
+                    console.log(CookieAuto);
+
                     str += '<div class="close menuClose" onclick="CookieAuto.ui.showMenu();">x</div>'+
                            '<div class="section">CookieAuto Interface</div>'+
                            '<div class="subsection">'+
@@ -690,13 +720,14 @@ var CookieAuto = {};
                            '<div class="title">Buying Next</div>'+
                            '<div class="listing">'+
                            '</div>'+
-                           '<div id="buyingNext" class="framed" style="width: 70%; margin: 0 auto; padding-bottom: 8px;">'+
+                           '<div id="buyingNext" class="framed" style="width: 70%; margin: 0 auto;">'+
                            '<div class="icon" style="float:left;margin-left:-8px;margin-top:-8px;background-position:-1200px -336px;"></div>'+
                            '<div class="price plain" style="float:right;">&infin;</div>'+
                            '<div class="name">Rainbow cookie</div>'+
                            '<small>[Absolutely nothing]</small>'+
                            '<div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">&infin; &times; &infin;</div>'+
                            '<div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:0;transition:right 0.5s;"></div></div>'+
+                           '<small style="text-align:center;display:block;width:20%;height:14px;margin:0 auto;position:relative;top:-12px;background:#888a;border-radius:12px;">100% (No time at all)</small>'+
                            '</div>'+
                            '</div>'+
 
