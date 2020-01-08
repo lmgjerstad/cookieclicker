@@ -753,7 +753,7 @@ var CookieAuto = {};
                            '<div class="name">Rainbow cookie</div>'+
                            '<small>[Absolutely nothing]</small>'+
                            '<div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">&infin; &times; &infin;</div>'+
-                           '<div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:0;transition:right 0.5s;"></div></div>'+
+                           '<div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:0;transition:right 0.1s;"></div></div>'+
                            '<small style="text-align:center;display:block;width:20%;height:14px;margin:0 auto;position:relative;top:-12px;background:#888a;border-radius:12px;">100% (No time at all)</small>'+
                            '</div>'+
                            '</div>'+
