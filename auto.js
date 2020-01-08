@@ -81,7 +81,11 @@ var CookieAuto = {};
         let str = '';
 
         for (let log of log_) {
-            str += '<div style="border-bottom: 1px solid #333; padding: 8px;overflow: auto;"><div class="icon" style="float: left; margin-left: -8px; margin-top: -8px;background-position:'+log[0]+';"></div><div class="name" style="margin: auto 0;">'+log[1]+'</div><small>'+log[2]+'</small></div>'
+            let text = log.text;
+            if (log.repeat) {
+                text += ' (x' + log.repeat + ')';
+            }
+            str += '<div style="border-bottom: 1px solid #333; padding: 8px;overflow: auto;"><div class="icon" style="float: left; margin-left: -8px; margin-top: -8px;background-position:'+log.icon+';"></div><div class="name" style="margin: auto 0;">'+text+'</div><small>'+log.small+'</small></div>'
         }
 
         let setscroll = lelem.scrollTop+240>lelem.scrollHeight;
@@ -92,7 +96,17 @@ var CookieAuto = {};
     }
 
     let log = function (ico, text, small) {
-        log_.push([(ico[0]*-48)+'px '+(ico[1]*-48)+'px', text, small]);
+        let last = log_.slice(-1)[0];
+        if (last && last.text == text) {
+            if (last.repeat) {
+                ++last.repeat;
+            } else {
+                last.repeat = 2;
+            }
+            last.small = small;
+        } else {
+            log_.push({icon: (ico[0]*-48)+'px '+(ico[1]*-48)+'px', text: text, small: small});
+        }
         updateUiLog();
     }
 
@@ -167,6 +181,10 @@ var CookieAuto = {};
             'Banker grandmas' : grandma_cps,
             'Priestess grandmas' : grandma_cps,
             'Witch grandmas' : grandma_cps,
+            'Lucky grandmas' : grandma_cps,
+            'Metagrandmas' : grandma_cps,
+            'Binary grandmas' : grandma_cps,
+            'Script grannies' : grandma_cps,
             'Plastic mouse' : mouse_cps,
             'Iron mouse' : mouse_cps,
             'Titanium mouse' : mouse_cps,
@@ -176,6 +194,9 @@ var CookieAuto = {};
             'Wishalloy mouse' : mouse_cps,
             'Fantasteel mouse' : mouse_cps,
             'Nevercrack mouse' : mouse_cps,
+            'Armythril mouse' : mouse_cps,
+            'Technobsidian mouse' : mouse_cps,
+            'Plasmarble mouse' : mouse_cps,
             'Heavenly chip secret' : prestige_cps(0.05),
             'Heavenly cookie stand' : prestige_cps(0.20),
             'Heavenly bakery' : prestige_cps(0.25),
@@ -377,8 +398,8 @@ var CookieAuto = {};
 
     let buyBest = () => {
         let done = false;
-        let itemsPurchased = false;
-        while (!done) {
+        let itemsPurchased = 0;
+        while (!done && itemsPurchased < 100) {
             maybeUpgradeDragon();
             maybeUpgradeSanta();
             let o = nextOnShoppingList() || bestBuy();
@@ -391,10 +412,10 @@ var CookieAuto = {};
                 if (o.constructor == Game.Object) {
                     o.buy(1);
                 } else {
-                    o.buy();
+                    o.buy(true);
                 }
                 logPurchase(o);
-                itemsPurchased = true;
+                ++itemsPurchased;
             } else {
                 if (itemsPurchased) {
                     console.log('next ' + o.name + ' => ' + format(target(o)));
@@ -419,7 +440,7 @@ var CookieAuto = {};
         if (settings.popWrinklers) {
             for (let wrinkler of Game.wrinklers) {
                 if (wrinkler.close == 1) {
-                    if (settings.wrinklerThreshold <= wrinkler.sucked) {
+                    if (settings.wrinklerThreshold * Game.cookies <= wrinkler.sucked) {
                         wrinkler.hp = 0;
                     }
                 }
@@ -713,6 +734,7 @@ var CookieAuto = {};
                            Game.WriteButton('buyscript_pwc','buyscript_pwc','Wrath Cookies ON','Wrath Cookies OFF','CookieAuto.toggleWrathCookies();')+'<label>(Click all wrath cookies automatically)</label><br>'+
                            Game.WriteButton('buyscript_rein','buyscript_rein','Reindeer ON','Reindeer OFF','CookieAuto.toggleReindeer();')+'<label>(Click reindeer automatically)</label><br>'+
                            Game.WriteButton('buyscript_wrnk','buyscript_wrnk','Wrinklers ON','Wrinklers OFF','CookieAuto.toggleWrinklers();')+'<label>(Click wrinklers automatically)</label><br>'+
+                           '<div class="sliderBox"><div style="float:left;">Wrinkler percentage</div><div style="float:right;" id="buyscript_wthreshRightText">'+(settings.wrinklerThreshold * 100)+'%</div><input class="slider" style="clear:both;" type="range" min="0" max="100" step="1" value="'+(settings.wrinklerThreshold * 100)+'" onmouseup="PlaySound(\'snd/tick.mp3\');" id="buyscript_wthresh"/></div><br>'+'<label>(Wait to pop wrinklers until they hold a % of total cookies)</label><br>'+
                            Game.WriteButton('buyscript_pledge','buyscript_pledge','Maintain Elder Pledge ON','Maintain Elder Pledge OFF','CookieAuto.togglePledge();')+'<label>(Maintain the elder pledge upgrade)</label><br>'+
                            Game.WriteButton('buyscript_dragonup','buyscript_dragonup','Dragon upgrades ON','Dragon upgrades OFF','CookieAuto.toggleDragon();')+'<label>(Enable/disable automatic dragon upgrades)</label><br>'+
                            Game.WriteButton('buyscript_santaup','buyscript_santaup','Santa upgrades ON','Santa upgrades OFF','CookieAuto.toggleSanta();')+'<label>(Enable/disable automatic santa upgrades)</label><br>'+
@@ -764,6 +786,13 @@ var CookieAuto = {};
                             clearInterval(CookieAuto.autoclicker);
                             CookieAuto.autoclicker = setInterval(Game.ClickCookie, autoclickInterval);
                         }
+                    }
+
+                    let wthresh = q('#buyscript_wthresh')[0]
+                    wthresh.oninput = wthresh.onchange = () => {
+                        q('#buyscript_wthreshRightText')[0].innerHTML = wthresh.value + '%';
+                        settings.wrinklerThreshold = wthresh.value / 100;
+                        saveSettings();
                     }
                 }
             }
