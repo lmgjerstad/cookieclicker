@@ -391,7 +391,7 @@ var CookieAuto = {};
                 if (o.constructor == Game.Object) {
                     o.buy(1);
                 } else {
-                    o.buy();
+                    o.buy(true);
                 }
                 logPurchase(o);
                 itemsPurchased = true;
