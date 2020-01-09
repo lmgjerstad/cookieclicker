@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-q
+// @version      0.1.0-r
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -615,7 +615,7 @@ var CookieAuto = {};
                     menuButton.style.opacity = "1";
                     menuBG.style.opacity = "1";
                     CookieAuto.ui.menuelem.style.display = "none";
-                    q('#centerArea')[0].style.display = "block";
+                    q('#centerArea')[0].style.opacity = "1";
                     CookieAuto.ui.menuelem.style.opacity = "1";
                 }
 
@@ -710,11 +710,11 @@ var CookieAuto = {};
                 showMenu : function () {
                     this.showing = !this.showing;
                     if (this.showing) {
-                        q('#centerArea')[0].style.display = "none";
+                        q('#centerArea')[0].style.opacity = "0";
                         Game.onMenu = "";
                         Game.ShowMenu();
                     } else {
-                        q('#centerArea')[0].style.display = "block";
+                        q('#centerArea')[0].style.opacity = "1";
                     }
                     this.menuelem.style.display = (this.showing?"block":"none");
                 },
