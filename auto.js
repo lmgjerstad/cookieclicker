@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-p
+// @version      0.1.0-q
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -495,7 +495,7 @@ var CookieAuto = {};
         if (d!==0) res.push(d+'d');
         if (h!==0) res.push(h+'h');
         if (m!==0) res.push(m+'m');
-        if (s!==0) res.push(s+'s');
+        res.push(s+'s');
 
         return res.join(' ');
     };
@@ -584,7 +584,7 @@ var CookieAuto = {};
                     bnelems[3].innerText = nextBuyType
                     bnelems[4].innerText = Beautify(target(nextBuy));
                     bnelems[5].children[0].style.right = (100-((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)) + '%';
-                    bnelems[6].innerText = Math.floor((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)+'% ('+TimeBeautify(ttl(nextBuy)*1000)+')';
+                    bnelems[6].innerText = Math.min(Math.floor((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100),100)+'% ('+TimeBeautify(ttl(nextBuy)*1000)+')';
                 }
             },
             loop : function () {
@@ -615,6 +615,7 @@ var CookieAuto = {};
                     menuButton.style.opacity = "1";
                     menuBG.style.opacity = "1";
                     CookieAuto.ui.menuelem.style.display = "none";
+                    q('#centerArea')[0].style.display = "block";
                     CookieAuto.ui.menuelem.style.opacity = "1";
                 }
 
@@ -687,7 +688,6 @@ var CookieAuto = {};
                     this.menuelem.style.overflow = "auto";
                     this.menuelem.style.display = "none";
                     this.menuelem.style.transition = "opacity 1s";
-                    this.menuelem.style.zIndex="1000";
 
                     document.body.appendChild(this.menuelem);
 
@@ -710,15 +710,16 @@ var CookieAuto = {};
                 showMenu : function () {
                     this.showing = !this.showing;
                     if (this.showing) {
+                        q('#centerArea')[0].style.display = "none";
                         Game.onMenu = "";
                         Game.ShowMenu();
+                    } else {
+                        q('#centerArea')[0].style.display = "block";
                     }
                     this.menuelem.style.display = (this.showing?"block":"none");
                 },
                 populateMenu : function () {
                     let str = '';
-
-                    console.log(CookieAuto);
 
                     str += '<div class="close menuClose" onclick="CookieAuto.ui.showMenu();">x</div>'+
                            '<div class="section">CookieAuto Interface</div>'+
@@ -752,7 +753,7 @@ var CookieAuto = {};
                            '<div class="name">Rainbow cookie</div>'+
                            '<small>[Absolutely nothing]</small>'+
                            '<div class="price" style="float:right;color:gold;line-height:18px;vertical-align:middle;">&infin; &times; &infin;</div>'+
-                           '<div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:0;transition:right 0.5s;"></div></div>'+
+                           '<div class="meterContainer smallFramed" style="margin-top: 10px;"><div class="meter filling" style="right:0;transition:right 0.1s;"></div></div>'+
                            '<small style="text-align:center;display:block;width:20%;height:14px;margin:0 auto;position:relative;top:-12px;background:#888a;border-radius:12px;">100% (No time at all)</small>'+
                            '</div>'+
                            '</div>'+
