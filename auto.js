@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-r
+// @version      0.1.0-s
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -52,6 +52,10 @@ var CookieAuto = {};
             return settings;
         }
     })();
+
+    if (!settings.hasOwnProperty('ascendRatio')) {
+        settings.ascendRatio = 2;
+    }
 
     let autoclickInterval = 20;
 
@@ -379,7 +383,10 @@ var CookieAuto = {};
     };
 
     let maybeUpgradeDragon = () => {
-        if (settings.upgradeDragon && Game.Has("A crumbly egg") && Game.dragonLevels[Game.dragonLevel].cost()) {
+        if (settings.upgradeDragon &&
+            Game.Has("A crumbly egg") &&
+            Game.dragonLevels[Game.dragonLevel].cost &&
+            Game.dragonLevels[Game.dragonLevel].cost()) {
             Game.UpgradeDragon();
             log(icons.dragon, 'A dragon upgrade has been purchased.', '[level : '+Game.dragonLevel+']');
         }
@@ -440,7 +447,7 @@ var CookieAuto = {};
         if (settings.popWrinklers) {
             for (let wrinkler of Game.wrinklers) {
                 if (wrinkler.close == 1) {
-                    if (settings.wrinklerThreshold * Game.cookies <= wrinkler.sucked) {
+                    if (settings.wrinklerThreshold * Game.cookiesPs <= wrinkler.sucked) {
                         wrinkler.hp = 0;
                     }
                 }
@@ -560,6 +567,10 @@ var CookieAuto = {};
                 settings.upgradeSanta = !settings.upgradeSanta;
                 saveSettings();
             },
+            toggleAutoAscend : () => {
+                settings.autoReset = !settings.autoReset;
+                saveSettings();
+            },
             control : settings,
             target : target,
             format : format,
@@ -584,17 +595,17 @@ var CookieAuto = {};
                     bnelems[3].innerText = nextBuyType
                     bnelems[4].innerText = Beautify(target(nextBuy));
                     bnelems[5].children[0].style.right = (100-((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100)) + '%';
-                    bnelems[6].innerText = Math.min(Math.floor((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100),100)+'% ('+TimeBeautify(ttl(nextBuy)*1000)+')';
+                    bnelems[6].innerText = Math.min(Math.floor((Game.cookies/(CookieAuto.getLuckyReserve() + price+1))*100), 100)+'% ('+TimeBeautify(ttl(nextBuy)*1000)+')';
                 }
             },
             loop : function () {
-                if (settings.autoReset && settings.autoReset > Game.resets) {
+                if (settings.autoReset) {
                     if (Game.OnAscend) {
                         Game.Reincarnate(true);
                     } else if (Game.AscendTimer > 0) {
                     } else {
-                        let prestige = Math.floor(Game.HowMuchPrestige(Game.cookiesReset+Game.cookiesEarned));
-                        if (prestige > Game.prestige) {
+                        let prestige = Math.floor(Game.HowMuchPrestige(Game.cookiesReset + Game.cookiesEarned));
+                        if (prestige > (Game.prestige * settings.ascendRatio)) {
                             Game.Ascend(true);
                         }
                     }
@@ -704,6 +715,7 @@ var CookieAuto = {};
 
                     Game.prefs.buyscript_santaup = settings.upgradeSanta?1:0;
                     Game.prefs.buyscript_dragonup = settings.upgradeDragon?1:0;
+                    Game.prefs.buyscript_autoascend = settings.autoReset?1:0;
 
                     this.populateMenu();
                 },
@@ -735,11 +747,13 @@ var CookieAuto = {};
                            Game.WriteButton('buyscript_pwc','buyscript_pwc','Wrath Cookies ON','Wrath Cookies OFF','CookieAuto.toggleWrathCookies();')+'<label>(Click all wrath cookies automatically)</label><br>'+
                            Game.WriteButton('buyscript_rein','buyscript_rein','Reindeer ON','Reindeer OFF','CookieAuto.toggleReindeer();')+'<label>(Click reindeer automatically)</label><br>'+
                            Game.WriteButton('buyscript_wrnk','buyscript_wrnk','Wrinklers ON','Wrinklers OFF','CookieAuto.toggleWrinklers();')+'<label>(Click wrinklers automatically)</label><br>'+
-                           '<div class="sliderBox"><div style="float:left;">Wrinkler percentage</div><div style="float:right;" id="buyscript_wthreshRightText">'+(settings.wrinklerThreshold * 100)+'%</div><input class="slider" style="clear:both;" type="range" min="0" max="100" step="1" value="'+(settings.wrinklerThreshold * 100)+'" onmouseup="PlaySound(\'snd/tick.mp3\');" id="buyscript_wthresh"/></div><br>'+'<label>(Wait to pop wrinklers until they hold a % of total cookies)</label><br>'+
+                           '<div class="sliderBox"><div style="float:left;">Wrinkler threshold</div><div style="float:right;" id="buyscript_wthreshRightText">'+TimeBeautify(settings.wrinklerThreshold * 1000)+'</div><input class="slider" style="clear:both;" type="range" min="0" max="1000" step="1" value="'+(Math.log(settings.wrinklerThreshold / 24)/Math.log(3600) * 1000)+'" onmouseup="PlaySound(\'snd/tick.mp3\');" id="buyscript_wthresh"/></div><br>'+'<label>(Relative to CpS)</label><br>'+
                            Game.WriteButton('buyscript_pledge','buyscript_pledge','Maintain Elder Pledge ON','Maintain Elder Pledge OFF','CookieAuto.togglePledge();')+'<label>(Maintain the elder pledge upgrade)</label><br>'+
                            Game.WriteButton('buyscript_dragonup','buyscript_dragonup','Dragon upgrades ON','Dragon upgrades OFF','CookieAuto.toggleDragon();')+'<label>(Enable/disable automatic dragon upgrades)</label><br>'+
                            Game.WriteButton('buyscript_santaup','buyscript_santaup','Santa upgrades ON','Santa upgrades OFF','CookieAuto.toggleSanta();')+'<label>(Enable/disable automatic santa upgrades)</label><br>'+
                            '<div class="sliderBox"><div style="float:left;">Autoclick Interval</div><div style="float:right;" id="buyscript_acintRightText">'+((1/autoclickInterval)*1000)+' clicks/sec</div><input class="slider" style="clear:both;" type="range" min="1" max="60" step="1" value="'+((1/autoclickInterval)*1000)+'" onmouseup="PlaySound(\'snd/tick.mp3\');" id="buyscript_acint"/></div><br>'+
+                           Game.WriteButton('buyscript_autoascend','buyscript_autoascend','Auto ascend ON','Auto ascend OFF','CookieAuto.toggleAutoAscend();')+'<label>(Enable/disable automatic ascencsion)</label><br>'+
+                           '<div class="sliderBox"><div style="float:left;">Ascend ratio</div><div style="float:right;" id="buyscript_aratRightText">'+(settings.ascendRatio)+'</div><input class="slider" style="clear:both;" type="range" min="0" max="1000" step="1" value="'+(Math.log((settings.ascendRatio - 2) / 98 * 1023 + 1)/Math.log(2) * 100)+'" onmouseup="PlaySound(\'snd/tick.mp3\');" id="buyscript_arat"/></div><br>'+'<label>(Ascend when prestige would multiply by x)</label><br>'+
                            '</div>'+
                            '</div>'+
 
@@ -791,10 +805,20 @@ var CookieAuto = {};
 
                     let wthresh = q('#buyscript_wthresh')[0]
                     wthresh.oninput = wthresh.onchange = () => {
-                        q('#buyscript_wthreshRightText')[0].innerHTML = wthresh.value + '%';
-                        settings.wrinklerThreshold = wthresh.value / 100;
+                        settings.wrinklerThreshold = Math.round(Math.pow(3600, wthresh.value / 1000) * 24);
+                        q('#buyscript_wthreshRightText')[0].innerHTML = TimeBeautify(settings.wrinklerThreshold * 1000);
                         saveSettings();
                     }
+
+                    let ascendRatioInput = q('#buyscript_arat')[0]
+                    ascendRatioInput.oninput = ascendRatioInput.onchange = () => {
+                        let ratio = (Math.pow(2, ascendRatioInput.value / 100) - 1) / 1023 * 98 + 2;
+                        ratio = Math.round(ratio * 100)/100;
+                        settings.ascendRatio = ratio
+                        q('#buyscript_aratRightText')[0].innerHTML = ratio;
+                        saveSettings();
+                    }
+
                 }
             }
         }
