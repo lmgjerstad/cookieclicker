@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-s
+// @version      0.1.0-t
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -640,7 +640,7 @@ var CookieAuto = {};
             init : function () {
                 initShoppingList();
 
-                this.shoppingListSortMode = this.sorting.price;
+                this.filters.sort = this.sorting.price;
 
                 this.ui.init();
 
@@ -664,23 +664,30 @@ var CookieAuto = {};
             },
             toggleInShoppingList: toggleInShoppingList,
             sorting : {
-                a2z : [(a,b) => a.name.localeCompare(b.name), "A to Z"],
-                z2a : [(a,b) => b.name.localeCompare(a.name), "Z to A"],
-                price : [(a,b) => a.getPrice() - b.getPrice(), "Price"],
-                revPrice : [(a,b) => b.getPrice() - a.getPrice(), "Reverse Price"],
+                a2z : (a,b) => a.name.localeCompare(b.name),
+                z2a : (a,b) => b.name.localeCompare(a.name),
+                price : (a,b) => a.getPrice() - b.getPrice(),
+                revPrice : (a,b) => b.getPrice() - a.getPrice(),
                 __algos__ : ["a2z", "z2a", "price", "revPrice"]
             },
-            shoppingListSortMode : null,
-            generateIconTableData : function() {
+            generateIconTableData : function(contentsOnly) {
                 let u = Game.UpgradesByPool[''].concat(Game.UpgradesByPool.tech)
-                                               .sort(this.shoppingListSortMode[0]);
-                let res = '';
+                                               .sort(this.filters.sort);
+                let res = (contentsOnly?'':'<div style="padding:0;margin:0;overflow:auto;" id="shoppinglist_data">');
                 for (let o of u) {
+                    if (!o.name.includes(this.filters.search) && !o.desc.replace(/<\s*\/?\s*[a-z]+(\s*[a-z]+=['"][\s\S]*['"])*\s*>/gi, '').includes(this.filters.search)) continue;
+                    if (o.bought && !this.filters.bought) continue;
                     let x = o.icon[0]*-48;
                     let y = o.icon[1]*-48;
                     res += '<div id="shlst'+o.id+'" class="icon" onclick="CookieAuto.toggleInShoppingList(Game.UpgradesById['+o.id+']);" onmouseout="Game.setOnCrate(0);Game.tooltip.shouldHide=1;" onmouseover="if (!Game.mouseDown) {Game.setOnCrate(this);Game.tooltip.dynamic=1;Game.tooltip.draw(this,function(){return function(){return Game.crateTooltip(Game.UpgradesById['+o.id+'],\'shoppingListSelector\');}();},\'\');Game.tooltip.wobble();}" style="padding:0; cursor:pointer; background-position:'+x+'px '+y+'px; float:left; opacity:'+(inShoppingList(o)?'1':'0.2')+';"></div>';
                 }
-                return res;
+                return res + (contentsOnly?'':'</div>');
+            },
+
+            filters : {
+                search : '',
+                sort : null,
+                bought : true
             },
 
             ui : {
@@ -782,7 +789,21 @@ var CookieAuto = {};
                            '<div class="subsection">'+
                            '<div class="title">Shopping List</div>'+
                            '<div class="listing" style="overflow:auto;">'+
-                           // TODO: Insert search bar and filters here
+
+                           '<div class="framed" style="font-size:16px;outline:none;font-family:Tahoma,Arial,sans-serif;text-align:center;">'+
+                           '<span style="background:url(https://experiences.worldofhyatt.com/images/io/filter%20icon_big.png);background-size: 24px 24px;font-size:24px;font-family:Merriweather,Georgia,sans-serif;background-repeat:no-repeat;margin:12px;background-position:0 -4px;display:inline-block;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Filters</span><br>'+
+                           '<input type="text" placeholder="Search..." id="shoppinglist_fsearch" class="framed" style="font-size:16px;outline:none;font-family:Tahoma,Arial,sans-serif;"></input>'+
+                           '<select class="framed" style="font-size:16px;outline:none;font-family:Tahoma,Arial,sans-serif;" id="shoppinglist_fsort">'+
+                           '<option name="a2z">Sort: A to Z</option>'+
+                           '<option name="z2a">Sort: Z to A</option>'+
+                           '<option name="price" selected>Sort: Price</option>'+
+                           '<option name="revPrice">Sort: Reverse Price</option>'+
+                           '</select>'+
+                           '<input type="checkbox" id="shoppinglist_fbought" style="height:18px;margin-right:8px;outline:none;line-height:18px;vertical-align:middle;" checked></input><span style="font-size:16px;outline:none;font-family:Tahoma,Arial,sans-serif;">Show Bought</span>'+
+                           '</div>'+
+
+                           '<br><br>'+
+
                            CookieAuto.generateIconTableData()+
                            '</div>'+
                            '</div>'+
@@ -790,7 +811,7 @@ var CookieAuto = {};
 
                     this.menuelem.innerHTML = str;
 
-                    let acint = q('#buyscript_acint')[0]
+                    let acint = q('#buyscript_acint')[0];
 
                     acint.oninput = acint.onchange = () => {
                         q('#buyscript_acintRightText')[0].innerHTML = acint.value + ' click'+(acint.value=='1'?'':'s')+'/sec';
@@ -803,13 +824,39 @@ var CookieAuto = {};
                         }
                     }
 
-                    let wthresh = q('#buyscript_wthresh')[0]
+                    let wthresh = q('#buyscript_wthresh')[0];
                     wthresh.oninput = wthresh.onchange = () => {
                         settings.wrinklerThreshold = Math.round(Math.pow(3600, wthresh.value / 1000) * 24);
                         q('#buyscript_wthreshRightText')[0].innerHTML = TimeBeautify(settings.wrinklerThreshold * 1000);
                         saveSettings();
                     }
+                    
+                    // NOTE: Filters should not be saved.
 
+                    let fsearch = q('#shoppinglist_fsearch')[0];
+                    fsearch.oninput = fsearch.onchange = () => {
+                        CookieAuto.filters.search = fsearch.value;
+                        q('#shoppinglist_data')[0].innerHTML = CookieAuto.generateIconTableData(true);
+                    }
+
+                    let fsort = q('#shoppinglist_fsort')[0];
+                    fsort.oninput = fsort.onchange = () => {
+                        CookieAuto.filters.sort = CookieAuto.sorting[CookieAuto.sorting.__algos__[fsort.selectedIndex]];
+                        q('#shoppinglist_data')[0].innerHTML = CookieAuto.generateIconTableData(true);
+                    }
+
+                    let fbought = q('#shoppinglist_fbought')[0];
+                    fbought.oninput = fbought.onchange = () => {
+                        CookieAuto.filters.bought = fbought.checked;
+                        q('#shoppinglist_data')[0].innerHTML = CookieAuto.generateIconTableData(true);
+                    }
+
+                    let fseason = q('#shoppinglist_fseason')[0];
+                    fbought.oninput = fbought.onchange = () => {
+                        CookieAuto.filters.season = fseason.checked;
+                        q('#shoppinglist_data')[0].innerHTML = CookieAuto.generateIconTableData(true);
+                    }
+                    
                     let ascendRatioInput = q('#buyscript_arat')[0]
                     ascendRatioInput.oninput = ascendRatioInput.onchange = () => {
                         let ratio = (Math.pow(2, ascendRatioInput.value / 100) - 1) / 1023 * 98 + 2;
@@ -818,7 +865,6 @@ var CookieAuto = {};
                         q('#buyscript_aratRightText')[0].innerHTML = ratio;
                         saveSettings();
                     }
-
                 }
             }
         }
