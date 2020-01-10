@@ -727,7 +727,7 @@ var CookieAuto = {};
                         Game.ShowMenu();
                     } else {
                         q('#centerArea')[0].style.opacity = "1";
-		    }
+                    }
                     this.menuelem.style.display = (this.showing?"block":"none");
                 },
                 populateMenu : function () {
