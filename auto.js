@@ -626,7 +626,7 @@ var CookieAuto = {};
                     menuButton.style.opacity = "1";
                     menuBG.style.opacity = "1";
                     CookieAuto.ui.menuelem.style.display = "none";
-		    q('#centerArea')[0].style.opacity = "1";
+                    q('#centerArea')[0].style.opacity = "1";
                     CookieAuto.ui.menuelem.style.opacity = "1";
                 }
 
@@ -722,11 +722,12 @@ var CookieAuto = {};
                 showMenu : function () {
                     this.showing = !this.showing;
                     if (this.showing) {
-			q('#centerArea')[0].style.opacity = "0";
+                        q('#centerArea')[0].style.opacity = "0";
                         Game.onMenu = "";
                         Game.ShowMenu();
                     } else {
-                        q('#centerArea')[0].style.opacity = "1";                    }
+                        q('#centerArea')[0].style.opacity = "1";
+		    }
                     this.menuelem.style.display = (this.showing?"block":"none");
                 },
                 populateMenu : function () {
