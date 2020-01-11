@@ -826,11 +826,11 @@ var CookieAuto = {};
 
                     let wthresh = q('#buyscript_wthresh')[0];
                     wthresh.oninput = wthresh.onchange = () => {
-                        settings.wrinklerThreshold = Math.round(Math.pow(3600, wthresh.value / 1000) * 24);
+                        settings.wrinklerThreshold = Math.round(Math.pow(3600, wthresh.value / 1000));
                         q('#buyscript_wthreshRightText')[0].innerHTML = TimeBeautify(settings.wrinklerThreshold * 1000);
                         saveSettings();
                     }
-                    
+
                     // NOTE: Filters should not be saved.
 
                     let fsearch = q('#shoppinglist_fsearch')[0];
@@ -856,7 +856,7 @@ var CookieAuto = {};
                         CookieAuto.filters.season = fseason.checked;
                         q('#shoppinglist_data')[0].innerHTML = CookieAuto.generateIconTableData(true);
                     }
-                    
+
                     let ascendRatioInput = q('#buyscript_arat')[0]
                     ascendRatioInput.oninput = ascendRatioInput.onchange = () => {
                         let ratio = (Math.pow(2, ascendRatioInput.value / 100) - 1) / 1023 * 98 + 2;
