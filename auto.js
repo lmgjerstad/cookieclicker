@@ -359,6 +359,8 @@ var CookieAuto = {};
         }
         settings.shoppingList = Array.from(shoppingList.keys());
 
+        saveSettings();
+
         q('#shlst'+me.id)[0].style.opacity = inShoppingList(me)?'1':'0.2';
     };
 
