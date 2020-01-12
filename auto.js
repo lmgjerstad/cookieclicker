@@ -23,30 +23,21 @@ var CookieAuto = {};
         if (serialized) {
             return JSON.parse(serialized);
         } else {
-            // TODO: Delete this branch once everyone has run this code once
-            let get_def = (name, def) => {
-                let val = localStorage.getItem(name);
-                if (val === null) {
-                    return def;
-                }
-                localStorage.removeItem(name);
-                return JSON.parse(val);
-            };
             settings = {
-                considerTTL : get_def('buyscript_considerTTL', true),
-                buyBuildings : get_def('buyscript_buyBuildings', true),
-                buyUpgrades : get_def('buyscript_buyUpgrades', true),
-                popGoldenCookies : get_def('buyscript_popGoldenCookies', true),
-                popWrathCookies: get_def('buyscript_popWrathCookies', true),
-                popReindeer : get_def('buyscript_popReindeer', true),
-                popWrinklers : get_def('buyscript_popWrinklers', true),
-                wrinklerThreshold : get_def('buyscript_wrinklerThreshold', 0),
-                maintainPledge : get_def('buyscript_maintainPledge', true),
-                reserve : get_def('buyscript_reserve', false),
-                autoclick : get_def('buyscript_autoclick', false),
-                upgradeDragon : get_def('buyscript_upgradeDragon', false),
-                upgradeSanta : get_def('buyscript_upgradeSanta', false),
-                autoReset : get_def('buyscript_autoReset', false),
+                considerTTL : true,
+                buyBuildings : true,
+                buyUpgrades : true,
+                popGoldenCookies : true,
+                popWrathCookies: true,
+                popReindeer : true,
+                popWrinklers : true,
+                wrinklerThreshold : 0,
+                maintainPledge : true,
+                reserve : false,
+                autoclick : false,
+                upgradeDragon : false,
+                upgradeSanta : false,
+                autoReset : false,
             };
             localStorage.setItem('cookie_auto', JSON.stringify(settings));
             return settings;
@@ -315,21 +306,6 @@ var CookieAuto = {};
     let initShoppingList = () => {
         (() => {
             if (settings.hasOwnProperty('shoppingList')) {
-                return;
-            }
-            let bf = b64_to_utf8(localStorage.getItem('buyscript_shoppingList'));
-            if (bf) {
-                localStorage.removeItem('buyscript_shoppingList');
-                let items = [];
-                let u = Game.UpgradesByPool[''].concat(Game.UpgradesByPool.tech)
-                                               .sort((a,b) => a.id - b.id);
-                for (let bit in bf) {
-                    if (bf[bit] == '1') {
-                        items.push(u[bit]);
-                    }
-                }
-                settings.shoppingList = items.map(x => x.name);
-                localStorage.setItem('cookie_auto', JSON.stringify(settings));
                 return;
             }
             settings.shoppingList = Game.UpgradesByPool.tech.map(x => x.name)
@@ -857,12 +833,6 @@ var CookieAuto = {};
                     let fbought = q('#shoppinglist_fbought')[0];
                     fbought.oninput = fbought.onchange = () => {
                         CookieAuto.filters.bought = fbought.checked;
-                        q('#shoppinglist_data')[0].innerHTML = CookieAuto.generateIconTableData(true);
-                    }
-
-                    let fseason = q('#shoppinglist_fseason')[0];
-                    fbought.oninput = fbought.onchange = () => {
-                        CookieAuto.filters.season = fseason.checked;
                         q('#shoppinglist_data')[0].innerHTML = CookieAuto.generateIconTableData(true);
                     }
 
