@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-u
+// @version      0.1.0-v
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -685,7 +685,7 @@ var CookieAuto = {};
                 let u = Game.UpgradesByPool[''].concat(Game.UpgradesByPool.tech);
                 if (this.filters.search) {
                     u = u.filter(
-                        o => o.name.includes(this.filters.search) ||
+                        o => o.name.toLowerCase().includes(this.filters.search.toLowerCase()) ||
                              o.desc.replace(/<\s*\/?\s*[a-z]+(\s*[a-z]+=['"][\s\S]*['"])*\s*>/gi, '')
                                    .includes(this.filters.search));
                 }
