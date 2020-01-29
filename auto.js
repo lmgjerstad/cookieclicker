@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         CookieAuto
-// @version      0.1.0-t
+// @version      0.1.0-v
 // @namespace    https://github.com/lmgjerstad/cookieclicker
 // @updateURL    https://raw.githubusercontent.com/lmgjerstad/cookieclicker/master/auto.js
 // @description  Automate your cookies!
@@ -19,34 +19,35 @@ var CookieAuto = {};
     let Game = window.Game;
     let settings = (() => {
         let serialized = localStorage.getItem('cookie_auto');
-        let settings;
         if (serialized) {
-            return JSON.parse(serialized);
-        } else {
-            settings = {
-                considerTTL : true,
-                buyBuildings : true,
-                buyUpgrades : true,
-                popGoldenCookies : true,
-                popWrathCookies: true,
-                popReindeer : true,
-                popWrinklers : true,
-                wrinklerThreshold : 0,
-                maintainPledge : true,
-                reserve : false,
-                autoclick : false,
-                upgradeDragon : false,
-                upgradeSanta : false,
-                autoReset : false,
-            };
-            localStorage.setItem('cookie_auto', JSON.stringify(settings));
-            return settings;
+            let settings = JSON.parse(serialized);
+            if (!settings.hasOwnProperty('clickFortune')) {
+              settings.clickFortune = true;
+            }
+            return settings
         }
+        let settings = {
+            considerTTL : true,
+            buyBuildings : true,
+            buyUpgrades : true,
+            popGoldenCookies : true,
+            popWrathCookies: true,
+            popReindeer : true,
+            popWrinklers : true,
+            wrinklerThreshold : 0,
+            maintainPledge : true,
+            reserve : false,
+            autoclick : false,
+            upgradeDragon : false,
+            upgradeSanta : false,
+            autoReset : false,
+            ascendRatio : 2,
+            clickFortune : true,
+        };
+        localStorage.setItem('cookie_auto', JSON.stringify(settings));
+        return settings;
     })();
 
-    if (!settings.hasOwnProperty('ascendRatio')) {
-        settings.ascendRatio = 2;
-    }
 
     let autoclickInterval = 20;
 
@@ -205,14 +206,19 @@ var CookieAuto = {};
             'Heavenly key' : prestige_cps(0.25),
             "Bingo center/Research facility" : () => Game.Objects.Grandma.storedTotalCps * Game.globalCpsMult * 3,
             "A crumbly egg" : () => Infinity,
+            'Fortune #100' : () => Game.cookiesPs * 0.01,
+            'Fortune #101' : () => Game.cookiesPs * 0.07,
+            'Fortune #104' : mouse_cps,
         }
-
         return o => {
             let cps;
             if (o.constructor === Game.Upgrade) {
                 if (o.tier && o.buildingTie) {
                     // Upgrade is tied to a building type and will double output of that building.
                     cps = o.buildingTie.storedTotalCps * Game.globalCpsMult;
+                    if (o.tier == 'fortune') {
+                        cps *= 0.07;
+                    }
                 } else if (o.pool == "cookie") {
                     // Cookies increase 1% per power.
                     if (typeof(o.power) == "function") {
@@ -341,8 +347,6 @@ var CookieAuto = {};
             shoppingList.set(me.name, me);
         }
         settings.shoppingList = Array.from(shoppingList.keys());
-
-        saveSettings();
 
         q('#shlst'+me.id)[0].style.opacity = inShoppingList(me)?'1':'0.2';
     };
@@ -556,6 +560,10 @@ var CookieAuto = {};
                 settings.autoReset = !settings.autoReset;
                 saveSettings();
             },
+            toggleFortune : () => {
+                settings.clickFortune = !settings.clickFortune;
+                saveSettings();
+            },
             control : settings,
             target : target,
             format : format,
@@ -620,6 +628,9 @@ var CookieAuto = {};
                 CookieAuto.buyBest();
                 CookieAuto.popShimmers();
                 CookieAuto.pledge();
+                if (settings.clickFortune && Game.TickerEffect) {
+                    Game.tickerL.click();
+                }
                 CookieAuto.update();
             },
             init : function () {
@@ -656,12 +667,18 @@ var CookieAuto = {};
                 __algos__ : ["a2z", "z2a", "price", "revPrice"]
             },
             generateIconTableData : function(contentsOnly) {
-                let u = Game.UpgradesByPool[''].concat(Game.UpgradesByPool.tech)
-                                               .sort(this.filters.sort);
+                let u = Game.UpgradesByPool[''].concat(Game.UpgradesByPool.tech);
+                if (this.filters.search) {
+                    u = u.filter(
+                        o => o.name.toLowerCase().includes(this.filters.search.toLowerCase()) ||
+                             o.desc.replace(/<\s*\/?\s*[a-z]+(\s*[a-z]+=['"][\s\S]*['"])*\s*>/gi, '')
+                                   .includes(this.filters.search));
+                }
+                if (!this.filters.bought) {
+                    u = u.filter(o => !o.bought);
+                }
                 let res = (contentsOnly?'':'<div style="padding:0;margin:0;overflow:auto;" id="shoppinglist_data">');
-                for (let o of u) {
-                    if (!o.name.includes(this.filters.search) && !o.desc.replace(/<\s*\/?\s*[a-z]+(\s*[a-z]+=['"][\s\S]*['"])*\s*>/gi, '').includes(this.filters.search)) continue;
-                    if (o.bought && !this.filters.bought) continue;
+                for (let o of u.sort(this.filters.sort)) {
                     let x = o.icon[0]*-48;
                     let y = o.icon[1]*-48;
                     res += '<div id="shlst'+o.id+'" class="icon" onclick="CookieAuto.toggleInShoppingList(Game.UpgradesById['+o.id+']);" onmouseout="Game.setOnCrate(0);Game.tooltip.shouldHide=1;" onmouseover="if (!Game.mouseDown) {Game.setOnCrate(this);Game.tooltip.dynamic=1;Game.tooltip.draw(this,function(){return function(){return Game.crateTooltip(Game.UpgradesById['+o.id+'],\'shoppingListSelector\');}();},\'\');Game.tooltip.wobble();}" style="padding:0; cursor:pointer; background-position:'+x+'px '+y+'px; float:left; opacity:'+(inShoppingList(o)?'1':'0.2')+';"></div>';
@@ -708,6 +725,7 @@ var CookieAuto = {};
                     Game.prefs.buyscript_santaup = settings.upgradeSanta?1:0;
                     Game.prefs.buyscript_dragonup = settings.upgradeDragon?1:0;
                     Game.prefs.buyscript_autoascend = settings.autoReset?1:0;
+                    Game.prefs.buyscript_fortune = settings.clickFortune?1:0;
 
                     this.populateMenu();
                 },
@@ -746,6 +764,7 @@ var CookieAuto = {};
                            '<div class="sliderBox"><div style="float:left;">Autoclick Interval</div><div style="float:right;" id="buyscript_acintRightText">'+((1/autoclickInterval)*1000)+' clicks/sec</div><input class="slider" style="clear:both;" type="range" min="1" max="60" step="1" value="'+((1/autoclickInterval)*1000)+'" onmouseup="PlaySound(\'snd/tick.mp3\');" id="buyscript_acint"/></div><br>'+
                            Game.WriteButton('buyscript_autoascend','buyscript_autoascend','Auto ascend ON','Auto ascend OFF','CookieAuto.toggleAutoAscend();')+'<label>(Enable/disable automatic ascencsion)</label><br>'+
                            '<div class="sliderBox"><div style="float:left;">Ascend ratio</div><div style="float:right;" id="buyscript_aratRightText">'+(settings.ascendRatio)+'</div><input class="slider" style="clear:both;" type="range" min="0" max="1000" step="1" value="'+(Math.log((settings.ascendRatio - 2) / 98 * 1023 + 1)/Math.log(2) * 100)+'" onmouseup="PlaySound(\'snd/tick.mp3\');" id="buyscript_arat"/></div><br>'+'<label>(Ascend when prestige would multiply by x)</label><br>'+
+                           Game.WriteButton('buyscript_fortune','buyscript_fortune','Click fortunes ON','Click fortunes OFF','CookieAuto.toggleFortune();')+'<label>(Enable/disable automatic fortune clicks)</label><br>'+
                            '</div>'+
                            '</div>'+
 
@@ -811,7 +830,7 @@ var CookieAuto = {};
 
                     let wthresh = q('#buyscript_wthresh')[0];
                     wthresh.oninput = wthresh.onchange = () => {
-                        settings.wrinklerThreshold = Math.round(Math.pow(3600, wthresh.value / 1000));
+                        settings.wrinklerThreshold = Math.round(Math.pow(3600, wthresh.value / 1000) * 24);
                         q('#buyscript_wthreshRightText')[0].innerHTML = TimeBeautify(settings.wrinklerThreshold * 1000);
                         saveSettings();
                     }
@@ -835,7 +854,7 @@ var CookieAuto = {};
                         CookieAuto.filters.bought = fbought.checked;
                         q('#shoppinglist_data')[0].innerHTML = CookieAuto.generateIconTableData(true);
                     }
-
+                    
                     let ascendRatioInput = q('#buyscript_arat')[0]
                     ascendRatioInput.oninput = ascendRatioInput.onchange = () => {
                         let ratio = (Math.pow(2, ascendRatioInput.value / 100) - 1) / 1023 * 98 + 2;
