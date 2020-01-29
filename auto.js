@@ -314,21 +314,6 @@ var CookieAuto = {};
             if (settings.hasOwnProperty('shoppingList')) {
                 return;
             }
-            let bf = b64_to_utf8(localStorage.getItem('buyscript_shoppingList'));
-            if (bf) {
-                localStorage.removeItem('buyscript_shoppingList');
-                let items = [];
-                let u = Game.UpgradesByPool[''].concat(Game.UpgradesByPool.tech)
-                                               .sort((a,b) => a.id - b.id);
-                for (let bit in bf) {
-                    if (bf[bit] == '1') {
-                        items.push(u[bit]);
-                    }
-                }
-                settings.shoppingList = items.map(x => x.name);
-                localStorage.setItem('cookie_auto', JSON.stringify(settings));
-                return;
-            }
             settings.shoppingList = Game.UpgradesByPool.tech.map(x => x.name)
                                         .concat(Game.santaDrops)
                                         .concat(Game.easterEggs.filter(x => x != "Chocolate egg"))
@@ -869,13 +854,7 @@ var CookieAuto = {};
                         CookieAuto.filters.bought = fbought.checked;
                         q('#shoppinglist_data')[0].innerHTML = CookieAuto.generateIconTableData(true);
                     }
-
-                    //let fseason = q('#shoppinglist_fseason')[0];
-                    //fseason.oninput = fseason.onchange = () => {
-                    //    CookieAuto.filters.season = fseason.checked;
-                    //    q('#shoppinglist_data')[0].innerHTML = CookieAuto.generateIconTableData(true);
-                    //}
-
+                    
                     let ascendRatioInput = q('#buyscript_arat')[0]
                     ascendRatioInput.oninput = ascendRatioInput.onchange = () => {
                         let ratio = (Math.pow(2, ascendRatioInput.value / 100) - 1) / 1023 * 98 + 2;
